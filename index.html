@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Clips">
+<title>Spanish Clips</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ffffff; --ink:#18181b; --muted:#71717a; --line:#e4e4e7; --card:#ffffff;
+  --mark:#ffd84d; --mark-ink:#18181b; --heart:#e11d48;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --paper:#000000; --ink:#f4f4f5; --muted:#a1a1aa; --line:#27272a; --card:#18181b; --mark:#ffd84d; --mark-ink:#18181b; color-scheme:dark; }
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font:16px/1.45 "Atkinson Hyperlegible",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  display:flex; flex-direction:column; overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+
+/* Video area */
+.stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;background:#000}
+.frame{position:relative;height:100%;aspect-ratio:9/16;max-width:100%}
+#player{position:absolute;inset:0;width:100%;height:100%;border:0}
+.touch{position:absolute;inset:0;z-index:2;touch-action:none;cursor:pointer}
+.big-heart{position:absolute;left:50%;top:50%;z-index:3;font-size:96px;color:var(--heart);
+  transform:translate(-50%,-50%) scale(.4);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .35s ease}
+.big-heart.show{transform:translate(-50%,-50%) scale(1);opacity:.95}
+.paused{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);font-size:56px;color:#fff;opacity:0;pointer-events:none;transition:opacity .15s}
+.paused.show{opacity:.85}
+.msg{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;
+  text-align:center;padding:28px;color:#fff;background:rgba(0,0,0,.72);font-size:17px}
+.msg[hidden]{display:none}
+.msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:700;cursor:pointer}
+
+/* Panel under video */
+.panel{flex:0 0 auto;padding:12px 16px 14px;border-top:1px solid var(--line);max-height:40%;overflow-y:auto}
+.title{font-size:19px;line-height:1.55;margin:0 0 4px;word-wrap:break-word}
+.w{cursor:pointer;border-radius:3px;padding:0 1px;transition:background .15s}
+.w.on{background:var(--mark);color:var(--mark-ink)}
+.meta{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:14px;margin-bottom:10px}
+.channel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acts{display:flex;gap:6px;flex:0 0 auto}
+.icon{border:1px solid var(--line);background:transparent;border-radius:999px;min-width:44px;min-height:44px;font-size:18px;cursor:pointer}
+#like.on{color:var(--heart);border-color:var(--heart)}
+.lookup{display:flex;gap:8px}
+.lookup input{flex:1;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.lookup button{border:0;border-radius:12px;padding:0 16px;min-height:44px;background:var(--ink);color:var(--paper);font-weight:700;cursor:pointer}
+
+/* Meaning sheet */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);
+  border-radius:18px 18px 0 0;padding:18px 20px calc(18px + env(safe-area-inset-bottom,0px));
+  transform:translateY(105%);transition:transform .2s ease;max-height:62%;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+.sheet.open{transform:none}
+.sheet .word{margin:0;font-size:26px;font-weight:700}
+.sheet .tr{margin:2px 0 12px;font-size:18px}
+.sheet ol{margin:0 0 14px;padding-left:20px;color:var(--muted);font-size:15px}
+.sheet li{margin-bottom:6px}
+.sheet .pos{font-style:italic}
+.sheet .resume{width:100%;border:0;border-radius:12px;min-height:46px;background:var(--ink);color:var(--paper);font-weight:700;cursor:pointer}
+@media (prefers-reduced-motion: reduce){ .sheet,.big-heart,.w{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="frame">
+    <div id="player"></div>
+    <div class="touch" id="touch" aria-label="Tap to pause, double-tap to like, swipe up for next clip"></div>
+    <div class="big-heart" id="bigHeart">♥</div>
+    <div class="paused" id="pausedIcon">❚❚</div>
+    <div class="msg" id="msg"><div id="msgText">Loading clips…</div><button id="msgBtn" hidden>Start</button></div>
+  </div>
+</div>
+
+<div class="panel">
+  <p class="title" id="title"></p>
+  <div class="meta">
+    <span class="channel" id="channel"></span>
+    <span class="acts">
+      <button class="icon" id="replay" aria-label="Replay clip">↻</button>
+      <button class="icon" id="like" aria-label="Like clip">♥</button>
+    </span>
+  </div>
+  <form class="lookup" id="lookupForm" onsubmit="return false">
+    <input id="lookupInput" type="text" placeholder="Type a Spanish word" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    <button id="lookupBtn" type="submit">Look up</button>
+  </form>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="false" aria-labelledby="sheetWord">
+  <p class="word" id="sheetWord"></p>
+  <p class="tr" id="sheetTr"></p>
+  <ol id="sheetDefs"></ol>
+  <button class="resume" id="resume">Resume clip</button>
+</div>
+
+<script>
+/* ===== SETTINGS ===== */
+const API_KEY = "PASTE_YOUR_API_KEY_HERE"; // ← paste your YouTube Data API key between the quotes
+
+// Mix of all levels and topics. Edit freely.
+const BASE_QUERIES = [
+  "español para principiantes #shorts", "aprender español #shorts", "frases en español #shorts",
+  "vocabulario español #shorts", "español intermedio #shorts", "expresiones en español #shorts",
+  "historias cortas en español #shorts", "receta fácil #shorts", "curiosidades en español #shorts",
+  "viajar por España #shorts", "cultura mexicana #shorts", "humor en español #shorts",
+  "expresiones coloquiales #shorts", "gramática española #shorts", "conversación en español #shorts",
+  "datos curiosos #shorts", "argentina vida diaria #shorts", "colombia comida #shorts"
+];
+
+const STOP = new Set(("para como pero este esta esto estos estas porque cuando sobre también hasta donde desde todo todos " +
+  "durante contra otros otro otra otras ellos ellas nosotros vosotros antes algunos algunas mucho muchos nada " +
+  "poco quien quienes cual tiene tienen hace hacer muy más ser fue son está están aquí allí " +
+  "shorts short spanish español espanol learn aprender video videos with this that your from what how the and").split(" "));
+
+/* ===== SAVED TASTE (stays on this phone) ===== */
+const STORE = "spanishClips.v1";
+function blank(){ return {channels:{}, words:{}, skips:{}, blocked:[], seen:[], liked:[]}; }
+let S = (() => { try { return Object.assign(blank(), JSON.parse(localStorage.getItem(STORE)) || {}); } catch(e){ return blank(); } })();
+function save(){ try { if (S.seen.length > 3000) S.seen = S.seen.slice(-3000); localStorage.setItem(STORE, JSON.stringify(S)); } catch(e){} }
+
+/* ===== DOM ===== */
+const $ = id => document.getElementById(id);
+const msg = $("msg"), msgText = $("msgText"), msgBtn = $("msgBtn");
+function showMsg(text, btn){ msgText.textContent = text; msgBtn.hidden = !btn; if (btn) msgBtn.textContent = btn; msg.hidden = false; }
+function hideMsg(){ msg.hidden = true; }
+
+/* ===== FEED ===== */
+let queue = [], history = [], pos = -1, current = null, fetching = null, started = false;
+
+function decode(s){ const t = document.createElement("textarea"); t.innerHTML = s; return t.value; }
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function weightedPick(obj, score){
+  const list = Object.entries(obj).filter(([, v]) => score(v) > 0);
+  const total = list.reduce((t, [, v]) => t + score(v), 0);
+  let r = Math.random() * total;
+  for (const [k, v] of list){ r -= score(v); if (r <= 0) return k; }
+  return null;
+}
+function pickPlan(){
+  if (Math.random() < 0.6){
+    const ch = weightedPick(S.channels, v => v.score);
+    const w = weightedPick(S.words, v => v);
+    if (ch && (!w || Math.random() < 0.5)) return { channelId: ch };
+    if (w) return { q: w + " #shorts" };
+  }
+  return { q: BASE_QUERIES[Math.floor(Math.random() * BASE_QUERIES.length)] };
+}
+
+function fetchMore(){
+  if (fetching) return fetching;
+  fetching = (async () => {
+    for (let attempt = 0; attempt < 2; attempt++){
+      const plan = attempt === 0 ? pickPlan() : { q: BASE_QUERIES[Math.floor(Math.random() * BASE_QUERIES.length)] };
+      const p = new URLSearchParams({ part:"snippet", type:"video", videoDuration:"short", videoCaption:"closedCaption",
+        videoEmbeddable:"true", relevanceLanguage:"es", maxResults:"25", key:API_KEY });
+      if (plan.channelId) p.set("channelId", plan.channelId);
+      if (plan.q) p.set("q", plan.q);
+      const r = await fetch("https://www.googleapis.com/youtube/v3/search?" + p);
+      const d = await r.json();
+      if (d.error){
+        const reason = (d.error.errors && d.error.errors[0] && d.error.errors[0].reason) || "";
+        if (reason === "quotaExceeded") throw new Error("Daily search limit reached. New clips return tomorrow.");
+        throw new Error("YouTube refused the request (" + (reason || d.error.message) + "). Check your API key and its restrictions.");
+      }
+      const seen = new Set(S.seen), blocked = new Set(S.blocked);
+      const have = new Set(queue.concat(history).map(v => v.id));
+      const items = (d.items || []).filter(it => it.id && it.id.videoId)
+        .map(it => ({ id: it.id.videoId, title: decode(it.snippet.title), channelId: it.snippet.channelId, channel: decode(it.snippet.channelTitle) }))
+        .filter(v => !seen.has(v.id) && !blocked.has(v.channelId) && !have.has(v.id));
+      if (items.length){ queue.push(...shuffle(items)); return; }
+    }
+  })().finally(() => { fetching = null; });
+  return fetching;
+}
+
+/* ===== LEARNING ===== */
+function titleWords(t){ return [...new Set((t.toLowerCase().match(/\p{L}{4,}/gu) || []).filter(w => !STOP.has(w)))]; }
+function bumpChannel(v, n){
+  const c = S.channels[v.channelId] || { name: v.channel, score: 0 };
+  c.score = Math.max(-5, Math.min(30, c.score + n)); S.channels[v.channelId] = c;
+}
+function bumpWords(v, n){
+  for (const w of titleWords(v.title)){
+    S.words[w] = (S.words[w] || 0) + n;
+    if (S.words[w] <= 0) delete S.words[w];
+  }
+}
+function recordLeave(){
+  if (!current || !player || !current.played) return;
+  let t = 0, dur = 0;
+  try { t = player.getCurrentTime() || 0; dur = player.getDuration() || 0; } catch(e){}
+  if (t < 3 && !current.done){
+    S.skips[current.channelId] = (S.skips[current.channelId] || 0) + 1;
+    bumpChannel(current, -1);
+    if (S.skips[current.channelId] >= 3 && !S.blocked.includes(current.channelId)){
+      S.blocked.push(current.channelId);
+      queue = queue.filter(v => v.channelId !== current.channelId);
+    }
+  } else if (dur && t / dur > 0.8 && !current.done){
+    current.done = true; bumpChannel(current, 1);
+  }
+  if (!S.seen.includes(current.id)) S.seen.push(current.id);
+  save();
+}
+function setLike(on){
+  if (!current) return;
+  const has = S.liked.includes(current.id);
+  if (on && !has){ S.liked.push(current.id); bumpChannel(current, 3); bumpWords(current, 1); }
+  if (!on && has){ S.liked = S.liked.filter(x => x !== current.id); bumpChannel(current, -3); bumpWords(current, -1); }
+  save(); $("like").classList.toggle("on", on);
+}
+
+/* ===== PLAYER ===== */
+let player = null;
+window.onYouTubeIframeAPIReady = () => {
+  player = new YT.Player("player", {
+    playerVars: { playsinline:1, cc_load_policy:1, cc_lang_pref:"es", hl:"es", rel:0, controls:0, modestbranding:1, iv_load_policy:3, disablekb:1, fs:0 },
+    events: {
+      onReady: boot,
+      onStateChange: e => {
+        if (e.data === YT.PlayerState.PLAYING){
+          $("pausedIcon").classList.remove("show");
+          if (current){ current.played = true;
+            if (!current.ccSet){ current.ccSet = true;
+              try { player.loadModule("captions"); player.setOption("captions", "track", { languageCode: "es" }); } catch(err){} } }
+        }
+        if (e.data === YT.PlayerState.ENDED){
+          if (current && !current.done){ current.done = true; bumpChannel(current, 1); save(); }
+          player.seekTo(0); player.playVideo();
+        }
+      },
+      onError: () => { if (current && !S.seen.includes(current.id)){ S.seen.push(current.id); save(); } next(); }
+    }
+  });
+};
+
+function show(i){
+  recordLeave();
+  pos = i; current = history[pos];
+  current.played = false; current.ccSet = false;
+  player.loadVideoById(current.id);
+  renderInfo();
+  closeSheet(false);
+  if (queue.length < 5) fetchMore().catch(err => { if (!queue.length) showMsg(err.message); });
+}
+function next(){
+  if (pos < history.length - 1) return show(pos + 1);
+  if (queue.length){ history.push(queue.shift()); return show(history.length - 1); }
+  showMsg("Loading clips…");
+  fetchMore().then(() => { if (queue.length){ hideMsg(); next(); } else showMsg("No new clips found. Try again later."); })
+             .catch(err => showMsg(err.message));
+}
+function prev(){ if (pos > 0) show(pos - 1); }
+function togglePlay(){
+  if (!player || !started) return;
+  const st = player.getPlayerState();
+  if (st === YT.PlayerState.PLAYING){ player.pauseVideo(); $("pausedIcon").classList.add("show"); }
+  else { player.playVideo(); }
+}
+
+/* ===== INFO PANEL ===== */
+function renderInfo(){
+  const title = $("title"); title.textContent = "";
+  for (const part of current.title.split(/(\p{L}+)/u)){
+    if (/^\p{L}+$/u.test(part)){
+      const s = document.createElement("span"); s.className = "w"; s.textContent = part;
+      s.addEventListener("click", () => { document.querySelectorAll(".w.on").forEach(x => x.classList.remove("on")); s.classList.add("on"); lookup(part); });
+      title.appendChild(s);
+    } else title.appendChild(document.createTextNode(part));
+  }
+  $("channel").textContent = current.channel;
+  $("like").classList.toggle("on", S.liked.includes(current.id));
+}
+
+/* ===== DICTIONARY ===== */
+let lookupId = 0;
+function stripHtml(h){ return (new DOMParser().parseFromString(h, "text/html").body.textContent || "").trim(); }
+async function translate(word){
+  const r = await fetch("https://api.mymemory.translated.net/get?langpair=es|en&q=" + encodeURIComponent(word));
+  const d = await r.json();
+  return d && d.responseData ? d.responseData.translatedText : "";
+}
+async function define(word){
+  if (/\s/.test(word)) return [];
+  const r = await fetch("https://en.wiktionary.org/api/rest_v1/page/definition/" + encodeURIComponent(word));
+  if (!r.ok) return [];
+  const d = await r.json();
+  return (d.es || []).flatMap(e => (e.definitions || []).map(x => ({ pos: e.partOfSpeech, text: stripHtml(x.definition || "") })))
+                     .filter(x => x.text).slice(0, 3);
+}
+async function lookup(raw){
+  const word = raw.toLowerCase().replace(/[^\p{L}\s'-]/gu, "").trim();
+  if (!word) return;
+  const id = ++lookupId;
+  try { if (started) player.pauseVideo(); } catch(e){}
+  $("sheetWord").textContent = word; $("sheetTr").textContent = "Looking up…"; $("sheetDefs").textContent = "";
+  $("sheet").classList.add("open");
+  const [tr, defs] = await Promise.allSettled([translate(word), define(word)]);
+  if (id !== lookupId) return;
+  const t = tr.status === "fulfilled" ? tr.value : "";
+  $("sheetTr").textContent = t && t.toLowerCase() !== word ? t : (t ? t : "No translation found.");
+  const list = defs.status === "fulfilled" ? defs.value : [];
+  for (const d of list){
+    const li = document.createElement("li");
+    const p = document.createElement("span"); p.className = "pos"; p.textContent = d.pos + ": ";
+    li.append(p, d.text); $("sheetDefs").appendChild(li);
+  }
+}
+function closeSheet(resume){
+  $("sheet").classList.remove("open");
+  document.querySelectorAll(".w.on").forEach(x => x.classList.remove("on"));
+  if (resume && started) try { player.playVideo(); } catch(e){}
+}
+
+/* ===== GESTURES ===== */
+const touch = $("touch");
+let sx = 0, sy = 0, lastTap = 0, tapTimer = null;
+touch.addEventListener("pointerdown", e => { sx = e.clientX; sy = e.clientY; });
+touch.addEventListener("pointerup", e => {
+  const dx = e.clientX - sx, dy = e.clientY - sy;
+  if (Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx)){ dy < 0 ? next() : prev(); return; }
+  const now = Date.now();
+  if (now - lastTap < 280){
+    clearTimeout(tapTimer); lastTap = 0; setLike(true);
+    const h = $("bigHeart"); h.classList.add("show"); setTimeout(() => h.classList.remove("show"), 600);
+  } else {
+    lastTap = now; tapTimer = setTimeout(togglePlay, 280);
+  }
+});
+let wheelLock = 0;
+$("stage").addEventListener("wheel", e => {
+  if (Date.now() < wheelLock || Math.abs(e.deltaY) < 20) return;
+  wheelLock = Date.now() + 700; e.deltaY > 0 ? next() : prev();
+}, { passive: true });
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "ArrowDown") next();
+  if (e.key === "ArrowUp") prev();
+  if (e.key === " "){ e.preventDefault(); togglePlay(); }
+});
+
+$("like").addEventListener("click", () => setLike(!S.liked.includes(current && current.id)));
+$("replay").addEventListener("click", () => { if (started){ player.seekTo(0); player.playVideo(); } });
+$("lookupForm").addEventListener("submit", () => { const v = $("lookupInput").value; if (v.trim()){ lookup(v); $("lookupInput").blur(); } });
+$("resume").addEventListener("click", () => closeSheet(true));
+
+/* ===== START ===== */
+function boot(){
+  if (!API_KEY || API_KEY.startsWith("PASTE")){
+    showMsg("Add your YouTube API key: open index.html and paste it on the line that says API_KEY."); return;
+  }
+  showMsg("Loading clips…");
+  fetchMore().then(() => {
+    if (!queue.length){ showMsg("No clips found. Try again later."); return; }
+    showMsg("Swipe up for next clip. Tap to pause. Double-tap to like.", "Start");
+  }).catch(err => showMsg(err.message));
+}
+msgBtn.addEventListener("click", () => { hideMsg(); started = true; next(); try { player.playVideo(); } catch(e){} });
+
+const tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+document.head.appendChild(tag);
+</script>
+</body>
+</html>
