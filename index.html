@@ -50,14 +50,17 @@ button,input{font:inherit;color:inherit}
 .msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:600;cursor:pointer}
 
 /* Sentence under video */
-.panel{flex:0 0 auto;padding:16px 26px 4px;max-height:36%;overflow-y:auto}
+.panel{flex:0 0 auto;padding:12px 16px 2px;max-height:32%;overflow-y:auto;text-align:center}
+#title.gloss{display:flex;flex-wrap:wrap;justify-content:center;column-gap:10px;row-gap:8px;font-size:21px;line-height:1.2;max-width:34em;margin:0 auto}
+.wg{display:inline-flex;flex-direction:column;align-items:center}
+.g{font:12px/1.2 var(--sans);color:var(--muted);margin-top:3px;white-space:nowrap;max-width:9em;overflow:hidden;text-overflow:ellipsis}
 .es{font-family:var(--serif);font-size:25px;line-height:1.38;font-weight:500;margin:0;word-wrap:break-word}
 .w{cursor:pointer;border-radius:6px;padding:0 2px;margin:0 -2px;transition:background .15s}
 .live .w{color:var(--soon)}
 .live .w.said{color:var(--ink);font-weight:700}
 .w.hl{background:var(--mark);color:var(--mark-ink);font-weight:700}
-.en{margin:6px 0 0;color:var(--muted);font-size:16px;min-height:1.45em}
-.meta{margin:14px 0 0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.en{margin:8px auto 0;color:var(--muted);font-size:15px;min-height:1.45em;max-width:34em}
+.meta{margin:8px 0 0;font-size:12px;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Bottom bar */
 .bar{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:8px 16px 12px;padding:6px;background:var(--pill);border:1px solid var(--line);border-radius:999px}
@@ -388,6 +391,44 @@ function renderSentence(el, text, highlight){
   return spans;
 }
 
+/* ===== WORD-OVER-WORD LINE ===== */
+// Each Spanish word sits above its own English meaning, centered.
+let activeTr = 0; const waitingTr = [];
+function limited(fn){
+  return new Promise((res, rej) => {
+    const run = () => { activeTr++; fn().then(res, rej).finally(() => { activeTr--; if (waitingTr.length) waitingTr.shift()(); }); };
+    activeTr < 4 ? run() : waitingTr.push(run);
+  });
+}
+const glossCache = {};
+function glossFor(w){
+  w = w.toLowerCase();
+  if (!glossCache[w]){
+    glossCache[w] = limited(() => translateText(w))
+      .then(t => { t = (t || "").split(/[,;\/]/)[0].trim(); return t.length > 18 ? t.slice(0, 17) + "…" : t; })
+      .catch(() => "");
+  }
+  return glossCache[w];
+}
+function renderGloss(el, text){
+  el.textContent = ""; el.classList.add("gloss");
+  const spans = []; const re = /\S+/g; let m;
+  while ((m = re.exec(text))){
+    const chunk = m[0], core = (chunk.match(/\p{L}+/u) || [""])[0];
+    const col = document.createElement("span"); col.className = "wg";
+    const top = document.createElement("span"); top.className = "w"; top.textContent = chunk;
+    const g = document.createElement("span"); g.className = "g"; g.textContent = "\u00a0";
+    col.append(top, g); el.appendChild(col);
+    if (core){
+      top.dataset.core = core.toLowerCase();
+      top.addEventListener("click", () => lookup(core, text));
+      spans.push({ el: top, o: m.index });
+      glossFor(core).then(t => { if (t) g.textContent = t; });
+    }
+  }
+  return spans;
+}
+
 /* ===== LIVE SPOKEN LINES ===== */
 const subsCache = {};
 function loadSubs(v){
@@ -418,7 +459,9 @@ function wordTimes(line, spans){
 function renderLine(line){
   const el = $("title");
   el.classList.add("live");
-  lineSpans = renderSentence(el, line.text);
+  lineSpans = renderGloss(el, line.text);
+  const L = current && current.lines;
+  if (L && L[curLine + 1]) for (const w of (L[curLine + 1].text.match(/\p{L}+/gu) || [])) glossFor(w);   // get next line's meanings early
   lineTimes = wordTimes(line, lineSpans);
   $("titleTr").textContent = line.en || "";
   if (!line.en){
@@ -438,7 +481,7 @@ function renderInfo(){
   const v = current;
   v.clean = cleanTitle(v.title);
   $("title").classList.remove("live");
-  renderSentence($("title"), v.clean);
+  renderGloss($("title"), v.clean);
   $("titleTr").textContent = "";
   translateText(v.clean).then(t => { if (current === v) $("titleTr").textContent = t; }).catch(() => {});
   $("channel").textContent = v.channel + " · YouTube";
@@ -481,7 +524,7 @@ async function lookup(raw, sentence){
   $("sheetTr").textContent = "…";
   $("sheetDef").textContent = "";
   // Highlight the tapped word under the video too
-  document.querySelectorAll("#title .w").forEach(x => x.classList.toggle("hl", x.textContent.toLowerCase() === word));
+  document.querySelectorAll("#title .w").forEach(x => x.classList.toggle("hl", (x.dataset.core || x.textContent.toLowerCase()) === word));
   if (sentence){
     renderSentence($("sheetSentence"), sentence, word);
     $("sheetSentenceTr").textContent = $("titleTr").textContent;
