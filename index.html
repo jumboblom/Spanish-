@@ -44,7 +44,7 @@ button,input{font:inherit;color:inherit}
 .top .x[hidden]{display:none}
 
 /* Video card */
-.stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;padding:12px 16px 0}
+.stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;padding:10px 16px 0;max-height:68vh}
 .frame{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(0,0,0,.45)}
 #player{position:absolute;inset:0;width:100%;height:100%;border:0}
 .touch{position:absolute;inset:0;z-index:2;touch-action:none;cursor:pointer}
@@ -57,11 +57,11 @@ button,input{font:inherit;color:inherit}
 .msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:600;cursor:pointer}
 
 /* Sentence under video */
-.panel{flex:0 0 auto;padding:12px 16px 2px;text-align:center}
+.panel{flex:0 0 auto;padding:18px 14px 8px;text-align:center}
 /* Exactly one Spanish line + one English line, same size, auto-shrunk to fit */
-#title,#titleTr{font-size:20px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:640px;margin:0 auto;padding-bottom:6px}
+#title,#titleTr{font-size:25px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:640px;margin:0 auto;padding-bottom:6px}
 #title,#titleTr{min-height:calc(1.35em + 6px)}
-#titleTr{font-family:var(--sans);color:var(--en);margin-top:2px}
+#titleTr{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--en);margin-top:4px}
 /* Matched pairs: same-colored underline under a Spanish word and its English partner */
 .w.pair{text-decoration:underline;text-decoration-color:var(--pair);text-decoration-thickness:3px;text-underline-offset:5px;text-decoration-skip-ink:none}
 .en .w{cursor:default;margin:0;padding:0 1px}
@@ -454,12 +454,16 @@ function textWidth(t, font){ measureCtx.font = font; return measureCtx.measureTe
 function fitWidth(esEl, enEl){
   if (esEl.id !== "title"){ enEl.style.fontSize = ""; return; }   // word card lines may wrap
   const avail = esEl.clientWidth || 300;
-  const es = esEl.textContent.trim(), en = enEl.textContent.trim();
-  const base = 20; let size = base;
-  if (es) size = Math.min(size, base * avail / textWidth(es, "700 " + base + "px Newsreader, Georgia, serif"));
-  if (en) size = Math.min(size, base * avail / textWidth(en, "400 " + base + "px Figtree, -apple-system, sans-serif"));
-  size = Math.max(12, Math.floor(size * 10) / 10);
-  esEl.style.fontSize = enEl.style.fontSize = size + "px";   // same size for both lines
+  const base = 25, min = 13;
+  // Both lines start at the same size. Each shrinks only if its own text is too long for one line.
+  const fit = (el, font) => {
+    const t = el.textContent.trim();
+    let size = base;
+    if (t) size = Math.min(base, base * avail / textWidth(t, font));
+    el.style.fontSize = Math.max(min, Math.floor(size * 10) / 10) + "px";
+  };
+  fit(esEl, "700 " + base + "px Newsreader, Georgia, serif");
+  fit(enEl, "italic 400 " + base + "px Newsreader, Georgia, serif");
 }
 async function linkPairs(esSpans, enSpans, stillCurrent){
   const cores = esSpans.map(sp => sp.el.dataset.core);
