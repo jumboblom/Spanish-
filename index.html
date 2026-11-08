@@ -276,7 +276,7 @@ function fetchMore(){
       for (const list of results){
         let taken = 0;
         for (const v of shuffle(list)){
-          if (taken >= 10) break;                                  // max 10 clips per search
+          if (taken >= 20) break;                                  // max 20 clips per search
           if (seen.has(v.id) || blocked.has(v.channelId) || have.has(v.id)) continue;
           if ((perChannel[v.channelId] || 0) >= 2) continue;       // max 2 clips per channel per batch
           perChannel[v.channelId] = (perChannel[v.channelId] || 0) + 1;
@@ -381,13 +381,13 @@ function show(i){
   curLine = -1; lineSpans = [];
   renderInfo();
   const v = current;
-  loadSubs(v).then(lines => {
+  prepare(v).then(lines => {
     if (current !== v) return;
     v.lines = lines ? splitLines(lines) : null; curLine = -1;
     if (!lines){ showNoLines("No Spanish subtitles for this clip."); return; }
     if (v.played) applyCaptions();
   });
-  if (queue[0]) loadSubs(queue[0]);     // get the next clip's lines early
+  prepareAhead();                       // get the next 2 clips fully ready
   closeSheet(false);
   if (usable() < 6) fetchMore().catch(err => { if (!queue.length) showMsg(err.message); });
 }
@@ -519,21 +519,35 @@ function loadSubs(v){
     subsCache[v.id] = subsLimit(() => fetch(TRANSCRIPT_URL.replace(/\/$/, "") + "/?v=" + v.id).then(r => r.json()))
       .then(d => (d && d.lines && d.lines.length) ? d.lines : null)
       .catch(() => null)
-      .then(async lines => {
-        // Translate any line YouTube didn't translate, before the clip plays, so both lines appear together
-        if (lines) await Promise.all(lines.filter(l => !l.en).map(l =>
-          limited(() => translateText(l.text)).then(t => { if (t) l.en = t; }).catch(() => {})));
-        // Look up every word's meaning ahead too, so colored underlines appear with the words
-        if (lines){
-          const words = new Set(lines.flatMap(l => (l.text.match(/\p{L}+/gu) || []).map(w => w.toLowerCase())));
-          await Promise.all([...words].filter(w => !SKIP_ES.has(w)).map(glossFor));
-        }
+      .then(lines => {
         v.subsState = lines ? "ok" : "none";
         if (!lines && SUBS_ONLY && !S.seen.includes(v.id)){ S.seen.push(v.id); save(); }   // don't fetch it again
         return lines;
       });
   }
   return subsCache[v.id];
+}
+// Full prep (English lines + word meanings) runs only for the clip playing and the next 2.
+// Clips you never reach cost no translation allowance.
+const prepCache = {};
+function prepare(v){
+  if (!prepCache[v.id]){
+    prepCache[v.id] = loadSubs(v).then(async lines => {
+      if (!lines) return null;
+      await Promise.all(lines.filter(l => !l.en).map(l =>
+        limited(() => translateText(l.text)).then(t => { if (t) l.en = t; }).catch(() => {})));
+      const words = new Set(lines.flatMap(l => (l.text.match(/\p{L}+/gu) || []).map(w => w.toLowerCase())));
+      await Promise.all([...words].filter(w => !SKIP_ES.has(w)).map(glossFor));
+      return lines;
+    });
+  }
+  return prepCache[v.id];
+}
+function prepareAhead(){
+  const nextOk = queue.filter(v => v.subsState === "ok").slice(0, 2);
+  nextOk.forEach(prepare);
+  // if fewer than 2 are confirmed yet, prepare them as soon as they are
+  if (nextOk.length < 2) queue.filter(v => !v.subsState).slice(0, 4).forEach(v => loadSubs(v).then(l => { if (l && queue.filter(x => x.subsState === "ok").indexOf(v) < 2) prepare(v); }));
 }
 function usable(){ return queue.filter(v => v.subsState !== "none").length; }
 let curLine = -1, lineSpans = [], lineTimes = [];
@@ -616,17 +630,55 @@ function showNoLines(note){
 }
 
 /* ===== DICTIONARY ===== */
-const trCache = {};
+// Common words built in, so they never use translation allowance
+const COMMON = {
+  "es":"is","son":"are","está":"is","están":"are","estoy":"I am","estás":"you are","soy":"I am","eres":"you are","somos":"we are",
+  "era":"was","fue":"was","ser":"to be","estar":"to be","hay":"there is","había":"there was","tengo":"I have","tiene":"has",
+  "tienes":"you have","tener":"to have","tenemos":"we have","hacer":"to do","hace":"does","hago":"I do","haces":"you do",
+  "voy":"I go","va":"goes","vas":"you go","vamos":"let's go","ir":"to go","puedo":"I can","puede":"can","puedes":"you can",
+  "poder":"to be able","quiero":"I want","quieres":"you want","quiere":"wants","sé":"I know","sabes":"you know","sabe":"knows",
+  "saber":"to know","creo":"I think","dice":"says","digo":"I say","dijo":"said","decir":"to say","ver":"to see","veo":"I see",
+  "mira":"look","dar":"to give","doy":"I give","no":"no","sí":"yes","si":"if","pero":"but","porque":"because","cuando":"when",
+  "como":"like","cómo":"how","qué":"what","quién":"who","dónde":"where","donde":"where","cuál":"which","muy":"very","más":"more",
+  "menos":"less","mucho":"a lot","mucha":"a lot","muchos":"many","poco":"little","todo":"all","toda":"all","todos":"everyone",
+  "nada":"nothing","algo":"something","siempre":"always","nunca":"never","también":"also","tampoco":"neither","ya":"already",
+  "aquí":"here","ahí":"there","allí":"there","ahora":"now","hoy":"today","mañana":"tomorrow","ayer":"yesterday","bien":"well",
+  "mal":"bad","bueno":"good","buena":"good","buenos":"good","buenas":"good","malo":"bad","grande":"big","pequeño":"small",
+  "nuevo":"new","mismo":"same","otro":"other","otra":"other","este":"this","esta":"this","esto":"this","ese":"that","esa":"that",
+  "eso":"that","yo":"I","tú":"you","él":"he","ella":"she","nosotros":"we","ellos":"they","ellas":"they","usted":"you",
+  "ustedes":"you all","conmigo":"with me","contigo":"with you","gracias":"thanks","hola":"hello","adiós":"goodbye","día":"day",
+  "días":"days","vez":"time","tiempo":"time","casa":"house","gente":"people","amigo":"friend","amiga":"friend","mamá":"mom",
+  "papá":"dad","hombre":"man","mujer":"woman","niño":"boy","niña":"girl","agua":"water","comida":"food","cosa":"thing",
+  "cosas":"things","año":"year","años":"years","mundo":"world","vida":"life","verdad":"truth","señor":"sir","entonces":"then",
+  "pues":"well","así":"like this","solo":"only","luego":"later","después":"after","antes":"before","sobre":"about",
+  "entre":"between","hasta":"until","desde":"since","sin":"without","alguien":"someone","nadie":"nobody","cada":"each",
+  "uno":"one","dos":"two","tres":"three","primero":"first","favor":"favor","claro":"of course","oye":"hey","perdón":"sorry"
+};
+const TR_STORE = "spanishClips.tr.v1";
+const trCache = (() => { try { return JSON.parse(localStorage.getItem(TR_STORE)) || {}; } catch(e){ return {}; } })();
+let trSaveTimer = null;
+function saveTr(){
+  clearTimeout(trSaveTimer);
+  trSaveTimer = setTimeout(() => {
+    try {
+      const keys = Object.keys(trCache);
+      if (keys.length > 6000) keys.slice(0, keys.length - 6000).forEach(k => delete trCache[k]);   // keep newest 6,000
+      localStorage.setItem(TR_STORE, JSON.stringify(trCache));
+    } catch(e){}
+  }, 1500);
+}
 async function translateText(text){
-  const key = text.toLowerCase();
+  const key = text.toLowerCase().trim();
+  if (COMMON[key]) return COMMON[key];
   if (trCache[key] !== undefined) return trCache[key];
   let url = "https://api.mymemory.translated.net/get?langpair=es|en&q=" + encodeURIComponent(text);
   if (MYMEMORY_EMAIL) url += "&de=" + encodeURIComponent(MYMEMORY_EMAIL);
   const r = await fetch(url);
   const d = await r.json();
-  let out = (d && Number(d.responseStatus) === 200 && d.responseData) ? (d.responseData.translatedText || "") : "";
+  if (!(d && Number(d.responseStatus) === 200 && d.responseData)) return "";   // limit hit or error: don't remember, try again later
+  let out = d.responseData.translatedText || "";
   if (out.toLowerCase() === key) out = "";
-  trCache[key] = out;
+  trCache[key] = out; saveTr();
   return out;
 }
 let lookupId = 0;
@@ -751,8 +803,9 @@ function boot(){
     if (!queue.length){ showMsg("No clips found. Try again later."); return; }
     if (SUBS_ONLY && TRANSCRIPT_URL){
       // wait up to 6 seconds for at least one clip with Spanish subtitles
-      const firstOk = new Promise(res => queue.forEach(v => loadSubs(v).then(l => { if (l) res(); })));
-      await Promise.race([firstOk, new Promise(res => setTimeout(res, 6000))]);
+      const firstOk = new Promise(res => queue.forEach(v => loadSubs(v).then(l => { if (l) res(v); })));
+      const first = await Promise.race([firstOk, new Promise(res => setTimeout(res, 6000))]);
+      if (first) await Promise.race([prepare(first), new Promise(res => setTimeout(res, 4000))]);
     }
     showMsg("Swipe up for next clip. Tap to pause. Double-tap to like.", "Start");
   }).catch(err => showMsg(err.message));
