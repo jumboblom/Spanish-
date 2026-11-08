@@ -519,7 +519,15 @@ function loadSubs(v){
     subsCache[v.id] = subsLimit(() => fetch(TRANSCRIPT_URL.replace(/\/$/, "") + "/?v=" + v.id).then(r => r.json()))
       .then(d => (d && d.lines && d.lines.length) ? d.lines : null)
       .catch(() => null)
-      .then(lines => {
+      .then(async lines => {
+        // Translate any line YouTube didn't translate, before the clip plays, so both lines appear together
+        if (lines) await Promise.all(lines.filter(l => !l.en).map(l =>
+          limited(() => translateText(l.text)).then(t => { if (t) l.en = t; }).catch(() => {})));
+        // Look up every word's meaning ahead too, so colored underlines appear with the words
+        if (lines){
+          const words = new Set(lines.flatMap(l => (l.text.match(/\p{L}+/gu) || []).map(w => w.toLowerCase())));
+          await Promise.all([...words].filter(w => !SKIP_ES.has(w)).map(glossFor));
+        }
         v.subsState = lines ? "ok" : "none";
         if (!lines && SUBS_ONLY && !S.seen.includes(v.id)){ S.seen.push(v.id); save(); }   // don't fetch it again
         return lines;
@@ -573,9 +581,11 @@ function splitLines(lines){
 function renderLine(line){
   $("title").classList.add("live");
   const draw = () => { lineSpans = renderTwin($("title"), $("titleTr"), line.text, line.en || ""); lineTimes = wordTimes(line, lineSpans); };
-  draw();
-  if (!line.en){
-    translateText(line.text).then(t => { line.en = t; if (t && current && current.lines && current.lines[curLine] === line) draw(); }).catch(() => {});
+  if (line.en) draw();
+  else {
+    // Rare: English not ready yet. Keep the previous pair on screen, then show both new lines together.
+    const done = () => { if (current && current.lines && current.lines[curLine] === line) draw(); };
+    translateText(line.text).then(t => { if (t) line.en = t; done(); }).catch(done);
   }
   const L = current && current.lines;
   if (L && L[curLine + 1]) for (const w of (L[curLine + 1].text.match(/\p{L}+/gu) || [])) glossFor(w);   // get next line's meanings early
