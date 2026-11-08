@@ -13,18 +13,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#f3ebdd; --ink:#1f1a17; --muted:#7a7068; --line:#e3d8c6; --card:#fffdf8; --pill:#f8f2e7;
-  --mark:#fbe3a6; --mark-ink:#1f1a17; --heart:#d81b60;
+  --paper:#232325; --ink:#f2f2f3; --muted:#9a9aa1; --line:#38383c; --card:#2d2d30; --pill:#2a2a2d;
+  --mark:#f5d36b; --mark-ink:#1a1a1a; --heart:#ff4d7d; --soon:#76767d;
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
   --sans:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  color-scheme:light;
+  color-scheme:dark;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme: dark){
-  :root{ --paper:#171310; --ink:#f1e9dc; --muted:#a39886; --line:#2e2721; --card:#221c17; --pill:#201a15;
-    --mark:#7a5d1e; --mark-ink:#fff6e0; color-scheme:dark; }
 }
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -42,14 +38,14 @@ button,input{font:inherit;color:inherit}
 
 /* Video card */
 .stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;padding:12px 16px 0}
-.frame{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(70,45,20,.14)}
+.frame{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(0,0,0,.45)}
 #player{position:absolute;inset:0;width:100%;height:100%;border:0}
 .touch{position:absolute;inset:0;z-index:2;touch-action:none;cursor:pointer}
 .big-heart{position:absolute;left:50%;top:50%;z-index:3;font-size:96px;color:var(--heart);transform:translate(-50%,-50%) scale(.4);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .35s ease}
 .big-heart.show{transform:translate(-50%,-50%) scale(1);opacity:.95}
 .paused{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);font-size:52px;color:#fff;opacity:0;pointer-events:none;transition:opacity .15s}
 .paused.show{opacity:.85}
-.msg{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;padding:28px;color:#fff;background:rgba(20,14,8,.72);font-size:17px}
+.msg{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;padding:28px;color:#fff;background:rgba(0,0,0,.72);font-size:17px}
 .msg[hidden]{display:none}
 .msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:600;cursor:pointer}
 
@@ -57,6 +53,8 @@ button,input{font:inherit;color:inherit}
 .panel{flex:0 0 auto;padding:16px 26px 4px;max-height:36%;overflow-y:auto}
 .es{font-family:var(--serif);font-size:25px;line-height:1.38;font-weight:500;margin:0;word-wrap:break-word}
 .w{cursor:pointer;border-radius:6px;padding:0 2px;margin:0 -2px;transition:background .15s}
+.live .w{color:var(--soon)}
+.live .w.said{color:var(--ink);font-weight:700}
 .w.hl{background:var(--mark);color:var(--mark-ink);font-weight:700}
 .en{margin:6px 0 0;color:var(--muted);font-size:16px;min-height:1.45em}
 .meta{margin:14px 0 0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -69,11 +67,11 @@ button,input{font:inherit;color:inherit}
 .bar input{width:100%;border:0;background:transparent;padding:10px 12px;font-size:15px;outline:none}
 
 /* Word card */
-.backdrop{position:fixed;inset:0;z-index:9;background:rgba(40,28,16,.28)}
+.backdrop{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.5)}
 .backdrop[hidden]{display:none}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-radius:24px 24px 0 0;
   padding:26px 26px calc(26px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .22s ease;max-height:70%;overflow-y:auto;
-  box-shadow:0 -12px 40px rgba(40,28,16,.18);touch-action:pan-y}
+  box-shadow:0 -12px 40px rgba(0,0,0,.5);touch-action:pan-y}
 .sheet::before{content:"";position:absolute;top:10px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--line)}
 .sheet.open{transform:none}
 .sheet .word{margin:0;font-family:var(--serif);font-size:32px;font-weight:700;line-height:1.2}
@@ -131,7 +129,11 @@ button,input{font:inherit;color:inherit}
 
 <script>
 /* ===== SETTINGS ===== */
-const API_KEY = "AIzaSyDeDKkYb4DBV4hNzmyVSQRmddwqLBKi20k"; // ← paste your YouTube Data API key between the quotes
+const API_KEY = "AIzaSyDeDKkYb4DBV4hNzmyVSQRmddwqLBKi20k"; // your YouTube Data API key
+// Your Cloudflare Worker link, like "https://spanish-subs.yourname.workers.dev". Leave "" to show clip titles instead.
+const TRANSCRIPT_URL = "";
+// true = also show YouTube's own subtitles inside the video when live lines work
+const SHOW_VIDEO_SUBS = false;
 
 // Default mix when the search bar is blank. Edit, add, or remove freely.
 const CATEGORIES = {
@@ -302,6 +304,15 @@ function setLike(on){
 }
 
 /* ===== PLAYER ===== */
+function applyCaptions(){
+  if (!player || !current) return;
+  try {
+    if (current.lines && !SHOW_VIDEO_SUBS){ player.unloadModule("captions"); return; }
+    player.loadModule("captions");
+    player.setOption("captions", "fontSize", 3); // biggest caption size (range -1 to 3)
+    player.setOption("captions", "track", { languageCode: "en" });
+  } catch(err){}
+}
 let player = null;
 window.onYouTubeIframeAPIReady = () => {
   player = new YT.Player("player", {
@@ -312,12 +323,7 @@ window.onYouTubeIframeAPIReady = () => {
         if (e.data === YT.PlayerState.PLAYING){
           $("pausedIcon").classList.remove("show");
           if (current){ current.played = true;
-            if (!current.ccSet){ current.ccSet = true;
-              try {
-                player.loadModule("captions");
-                player.setOption("captions", "fontSize", 3); // biggest caption size (range -1 to 3)
-                player.setOption("captions", "track", { languageCode: "en" });
-              } catch(err){} } }
+            if (!current.ccSet){ current.ccSet = true; applyCaptions(); } }
         }
         if (e.data === YT.PlayerState.ENDED){
           if (current && !current.done){ current.done = true; bumpChannel(current, 1); save(); }
@@ -334,7 +340,16 @@ function show(i){
   pos = i; current = history[pos];
   current.played = false; current.ccSet = false;
   player.loadVideoById(current.id);
+  curLine = -1; lineSpans = [];
   renderInfo();
+  const v = current;
+  loadSubs(v).then(lines => {
+    if (current !== v) return;
+    v.lines = lines; curLine = -1;
+    if (!lines) return;
+    if (v.played) applyCaptions();
+  });
+  if (queue[0]) loadSubs(queue[0]);     // get the next clip's lines early
   closeSheet(false);
   if (queue.length < 5) fetchMore().catch(err => { if (!queue.length) showMsg(err.message); });
 }
@@ -360,18 +375,69 @@ const MYMEMORY_EMAIL = "atticus.ada@gmail.com";
 function cleanTitle(t){ return t.replace(/#[^\s#]+/g, "").replace(/\s{2,}/g, " ").trim() || t; }
 function renderSentence(el, text, highlight){
   el.textContent = "";
+  const spans = []; let off = 0;
   for (const part of text.split(/(\p{L}+)/u)){
     if (/^\p{L}+$/u.test(part)){
       const s = document.createElement("span"); s.className = "w"; s.textContent = part;
       if (highlight && part.toLowerCase() === highlight) s.classList.add("hl");
       s.addEventListener("click", () => lookup(part, text));
-      el.appendChild(s);
+      el.appendChild(s); spans.push({ el: s, o: off });
     } else el.appendChild(document.createTextNode(part));
+    off += part.length;
+  }
+  return spans;
+}
+
+/* ===== LIVE SPOKEN LINES ===== */
+const subsCache = {};
+function loadSubs(v){
+  if (!TRANSCRIPT_URL) return Promise.resolve(null);
+  if (!subsCache[v.id]){
+    subsCache[v.id] = fetch(TRANSCRIPT_URL.replace(/\/$/, "") + "/?v=" + v.id)
+      .then(r => r.json())
+      .then(d => (d && d.lines && d.lines.length) ? d.lines : null)
+      .catch(() => null);
+  }
+  return subsCache[v.id];
+}
+let curLine = -1, lineSpans = [], lineTimes = [];
+function wordTimes(line, spans){
+  const len = line.text.length || 1;
+  if (line.w && line.w.length){
+    let off = 0; const marks = [];
+    for (const g of line.w){
+      const i = line.text.indexOf(g.w, off);
+      const at = i < 0 ? off : i;
+      marks.push({ o: at, t: g.t }); off = at + g.w.length;
+    }
+    return spans.map(sp => { let t = line.s; for (const m of marks){ if (m.o <= sp.o) t = m.t; else break; } return t; });
+  }
+  const dur = Math.max(0.5, line.e - line.s);
+  return spans.map(sp => line.s + dur * (sp.o / len));
+}
+function renderLine(line){
+  const el = $("title");
+  el.classList.add("live");
+  lineSpans = renderSentence(el, line.text);
+  lineTimes = wordTimes(line, lineSpans);
+  $("titleTr").textContent = line.en || "";
+  if (!line.en){
+    translateText(line.text).then(t => { line.en = t; if (current && current.lines && current.lines[curLine] === line) $("titleTr").textContent = t; }).catch(() => {});
   }
 }
+setInterval(() => {
+  if (!started || !current || !current.lines || !player || !player.getCurrentTime) return;
+  let t = 0; try { t = player.getCurrentTime() || 0; } catch(e){ return; }
+  const L = current.lines;
+  let i = 0;
+  for (let k = 0; k < L.length; k++){ if (L[k].s <= t + 0.05) i = k; else break; }
+  if (i !== curLine){ curLine = i; renderLine(L[i]); }
+  for (let k = 0; k < lineSpans.length; k++) lineSpans[k].el.classList.toggle("said", t >= lineTimes[k] - 0.05);
+}, 120);
 function renderInfo(){
   const v = current;
   v.clean = cleanTitle(v.title);
+  $("title").classList.remove("live");
   renderSentence($("title"), v.clean);
   $("titleTr").textContent = "";
   translateText(v.clean).then(t => { if (current === v) $("titleTr").textContent = t; }).catch(() => {});
@@ -419,6 +485,7 @@ async function lookup(raw, sentence){
   if (sentence){
     renderSentence($("sheetSentence"), sentence, word);
     $("sheetSentenceTr").textContent = $("titleTr").textContent;
+    if (!$("sheetSentenceTr").textContent) translateText(sentence).then(t => { if (id === lookupId) $("sheetSentenceTr").textContent = t; }).catch(() => {});
     $("sheetCtx").hidden = false;
   } else $("sheetCtx").hidden = true;
   $("backdrop").hidden = false;
