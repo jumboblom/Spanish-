@@ -14,7 +14,7 @@
 <style>
 :root{
   --paper:#232325; --ink:#f2f2f3; --muted:#9a9aa1; --line:#38383c; --card:#2d2d30; --pill:#2a2a2d;
-  --mark:#f5d36b; --mark-ink:#1a1a1a; --heart:#ff4d7d; --soon:#76767d;
+  --mark:#f5d36b; --mark-ink:#1a1a1a; --heart:#ff4d7d; --soon:#8d8d94; --glass:rgba(30,30,33,.55);
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
   --sans:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   color-scheme:dark;
@@ -28,10 +28,17 @@ body{background:var(--paper);color:var(--ink);font:16px/1.45 var(--sans);display
 button,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--heart);outline-offset:2px}
 
+/* Glow from the current video, behind everything */
+.ambient{position:fixed;inset:-12%;z-index:-1;pointer-events:none}
+.ambient .layer{position:absolute;inset:0;background-size:cover;background-position:center;
+  filter:blur(70px) saturate(1.5) brightness(.5);opacity:0;transition:opacity .8s ease;transform:scale(1.1)}
+.ambient .layer.on{opacity:1}
+.ambient::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(20,20,22,.25),rgba(20,20,22,.55) 70%,rgba(20,20,22,.75))}
+
 /* Search bar */
 .top{flex:0 0 auto;padding:10px 16px 0}
 .top form{position:relative}
-.top input{width:100%;padding:10px 44px 10px 16px;border:1px solid var(--line);border-radius:999px;background:var(--pill);font-size:15px;-webkit-appearance:none;appearance:none}
+.top input{width:100%;padding:10px 44px 10px 16px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font-size:15px;-webkit-appearance:none;appearance:none}
 .top input::-webkit-search-cancel-button{display:none}
 .top .x{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);min-width:40px;min-height:40px;font-size:16px;cursor:pointer}
 .top .x[hidden]{display:none}
@@ -51,19 +58,20 @@ button,input{font:inherit;color:inherit}
 
 /* Sentence under video */
 .panel{flex:0 0 auto;padding:12px 16px 2px;max-height:32%;overflow-y:auto;text-align:center}
-#title.gloss{display:flex;flex-wrap:wrap;justify-content:center;column-gap:10px;row-gap:8px;font-size:21px;line-height:1.2;max-width:34em;margin:0 auto}
-.wg{display:inline-flex;flex-direction:column;align-items:center}
-.g{font:12px/1.2 var(--sans);color:var(--muted);margin-top:3px;white-space:nowrap;max-width:9em;overflow:hidden;text-overflow:ellipsis}
+#title{font-size:21px;line-height:1.4;max-width:30em;margin:0 auto}
+/* Matched pairs: same-colored underline under a Spanish word and its English partner */
+.w.pair{text-decoration:underline;text-decoration-color:var(--pair);text-decoration-thickness:3px;text-underline-offset:5px;text-decoration-skip-ink:none}
+.en .w{cursor:default;margin:0;padding:0 1px}
 .es{font-family:var(--serif);font-size:25px;line-height:1.38;font-weight:500;margin:0;word-wrap:break-word}
 .w{cursor:pointer;border-radius:6px;padding:0 2px;margin:0 -2px;transition:background .15s}
 .live .w{color:var(--soon)}
 .live .w.said{color:var(--ink);font-weight:700}
 .w.hl{background:var(--mark);color:var(--mark-ink);font-weight:700}
-.en{margin:8px auto 0;color:var(--muted);font-size:15px;min-height:1.45em;max-width:34em}
+.en{margin:6px auto 0;color:var(--muted);font-size:15px;line-height:1.5;min-height:1.45em;max-width:30em}
 .meta{margin:8px 0 0;font-size:12px;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Bottom bar */
-.bar{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:8px 16px 12px;padding:6px;background:var(--pill);border:1px solid var(--line);border-radius:999px}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:8px 16px 12px;padding:6px;background:var(--glass);border:1px solid rgba(255,255,255,.08);border-radius:999px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .bar .icon{flex:0 0 auto;width:46px;height:46px;border:0;border-radius:999px;background:transparent;font-size:20px;cursor:pointer;display:grid;place-items:center}
 #like.on{background:var(--mark);color:var(--heart)}
 .bar form{flex:1;min-width:0}
@@ -83,10 +91,12 @@ button,input{font:inherit;color:inherit}
 .ctx{margin-top:22px}
 .ctx[hidden]{display:none}
 .ctx .es{font-size:22px}
-@media (prefers-reduced-motion: reduce){ .sheet,.big-heart,.w{transition:none} }
+@media (prefers-reduced-motion: reduce){ .sheet,.big-heart,.w,.ambient .layer{transition:none} }
 </style>
 </head>
 <body>
+
+<div class="ambient" aria-hidden="true"><div class="layer" id="amb0"></div><div class="layer" id="amb1"></div></div>
 
 <div class="top">
   <form id="searchForm" onsubmit="return false" role="search">
@@ -306,6 +316,19 @@ function setLike(on){
   save(); $("like").classList.toggle("on", on);
 }
 
+/* ===== BACKGROUND GLOW ===== */
+let ambSide = 0;
+function setAmbient(id){
+  const img = new Image();
+  img.onload = () => {
+    ambSide = 1 - ambSide;
+    const on = $("amb" + ambSide), off = $("amb" + (1 - ambSide));
+    on.style.backgroundImage = "url(" + img.src + ")";
+    on.classList.add("on"); off.classList.remove("on");
+  };
+  img.src = "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg";
+}
+
 /* ===== PLAYER ===== */
 function applyCaptions(){
   if (!player || !current) return;
@@ -343,6 +366,7 @@ function show(i){
   pos = i; current = history[pos];
   current.played = false; current.ccSet = false;
   player.loadVideoById(current.id);
+  setAmbient(current.id);
   curLine = -1; lineSpans = [];
   renderInfo();
   const v = current;
@@ -376,14 +400,14 @@ function togglePlay(){
 const MYMEMORY_EMAIL = "atticus.ada@gmail.com";
 
 function cleanTitle(t){ return t.replace(/#[^\s#]+/g, "").replace(/\s{2,}/g, " ").trim() || t; }
-function renderSentence(el, text, highlight){
+function wordSpans(el, text, tappable){
   el.textContent = "";
   const spans = []; let off = 0;
   for (const part of text.split(/(\p{L}+)/u)){
     if (/^\p{L}+$/u.test(part)){
       const s = document.createElement("span"); s.className = "w"; s.textContent = part;
-      if (highlight && part.toLowerCase() === highlight) s.classList.add("hl");
-      s.addEventListener("click", () => lookup(part, text));
+      s.dataset.core = part.toLowerCase();
+      if (tappable) s.addEventListener("click", () => lookup(part, text));
       el.appendChild(s); spans.push({ el: s, o: off });
     } else el.appendChild(document.createTextNode(part));
     off += part.length;
@@ -391,8 +415,8 @@ function renderSentence(el, text, highlight){
   return spans;
 }
 
-/* ===== WORD-OVER-WORD LINE ===== */
-// Each Spanish word sits above its own English meaning, centered.
+/* ===== WORD MEANINGS (used to match word pairs) ===== */
+// Looks up each word quietly, at most 4 at a time.
 let activeTr = 0; const waitingTr = [];
 function limited(fn){
   return new Promise((res, rej) => {
@@ -410,23 +434,52 @@ function glossFor(w){
   }
   return glossCache[w];
 }
-function renderGloss(el, text){
-  el.textContent = ""; el.classList.add("gloss");
-  const spans = []; const re = /\S+/g; let m;
-  while ((m = re.exec(text))){
-    const chunk = m[0], core = (chunk.match(/\p{L}+/u) || [""])[0];
-    const col = document.createElement("span"); col.className = "wg";
-    const top = document.createElement("span"); top.className = "w"; top.textContent = chunk;
-    const g = document.createElement("span"); g.className = "g"; g.textContent = "\u00a0";
-    col.append(top, g); el.appendChild(col);
-    if (core){
-      top.dataset.core = core.toLowerCase();
-      top.addEventListener("click", () => lookup(core, text));
-      spans.push({ el: top, o: m.index });
-      glossFor(core).then(t => { if (t) g.textContent = t; });
-    }
-  }
-  return spans;
+/* Matched twin lines: Spanish line + natural English line, same width, matching words share a color */
+const SKIP_ES = new Set("el la los las lo un una unos unas de del al a en y e o u que te me se le les nos os con por para su sus mi mis tu tus".split(" "));
+const SKIP_EN = new Set("the a an to of and or in on at by for with it its".split(" "));
+const PAIR_COLORS = ["#f5d36b", "#7cc8ff", "#ff8fab", "#8ee59b", "#c7a5ff", "#ffb36b"];
+const measureCtx = document.createElement("canvas").getContext("2d");
+function textWidth(t, font){ measureCtx.font = font; return measureCtx.measureText(t).width; }
+function fitWidth(esEl, enEl){
+  const es = esEl.textContent.trim(), en = enEl.textContent.trim();
+  if (!es || !en){ enEl.style.fontSize = ""; return; }
+  const esSize = parseFloat(getComputedStyle(esEl).fontSize) || 21;
+  const wEs = textWidth(es, "500 " + esSize + "px Newsreader, Georgia, serif");
+  const wEn = textWidth(en, "400 15px Figtree, -apple-system, sans-serif");
+  const size = Math.max(12, Math.min(esSize - 3, 15 * wEs / wEn));   // English sized so both lines run the same length
+  enEl.style.fontSize = size.toFixed(1) + "px";
+}
+async function linkPairs(esSpans, enSpans, stillCurrent){
+  const cores = esSpans.map(sp => sp.el.dataset.core);
+  const glosses = await Promise.all(cores.map(w => SKIP_ES.has(w) ? "" : glossFor(w)));
+  if (!stillCurrent()) return;
+  const used = new Set(); let c = 0;
+  esSpans.forEach((sp, i) => {
+    const w = cores[i];
+    if (SKIP_ES.has(w)) return;
+    let toks = (glosses[i].toLowerCase().match(/\p{L}+/gu) || []).filter(t => !SKIP_EN.has(t));
+    if (!toks.length) toks = [w];                       // names and same-spelled words match themselves
+    const hit = enSpans.find(e => {
+      if (used.has(e)) return false;
+      const ew = e.el.dataset.core;
+      return toks.some(t => ew === t || (t.length >= 4 && ew.length >= 4 && ew.slice(0, 4) === t.slice(0, 4)));
+    });
+    if (!hit) return;
+    used.add(hit);
+    const col = PAIR_COLORS[c++ % PAIR_COLORS.length];
+    for (const el of [sp.el, hit.el]){ el.style.setProperty("--pair", col); el.classList.add("pair"); }
+    sp.el._partner = hit.el; hit.el._partner = sp.el;
+    if (sp.el.classList.contains("hl")) hit.el.classList.add("hl");
+  });
+}
+function renderTwin(esEl, enEl, esText, enText, highlight){
+  const tok = esEl._tok = (esEl._tok || 0) + 1;
+  const esSpans = wordSpans(esEl, esText, true);
+  if (highlight) esSpans.forEach(sp => { if (sp.el.dataset.core === highlight) sp.el.classList.add("hl"); });
+  const enSpans = enText ? wordSpans(enEl, enText, false) : (enEl.textContent = "", []);
+  fitWidth(esEl, enEl);
+  if (enSpans.length) linkPairs(esSpans, enSpans, () => esEl._tok === tok);
+  return esSpans;
 }
 
 /* ===== LIVE SPOKEN LINES ===== */
@@ -457,16 +510,14 @@ function wordTimes(line, spans){
   return spans.map(sp => line.s + dur * (sp.o / len));
 }
 function renderLine(line){
-  const el = $("title");
-  el.classList.add("live");
-  lineSpans = renderGloss(el, line.text);
+  $("title").classList.add("live");
+  const draw = () => { lineSpans = renderTwin($("title"), $("titleTr"), line.text, line.en || ""); lineTimes = wordTimes(line, lineSpans); };
+  draw();
+  if (!line.en){
+    translateText(line.text).then(t => { line.en = t; if (t && current && current.lines && current.lines[curLine] === line) draw(); }).catch(() => {});
+  }
   const L = current && current.lines;
   if (L && L[curLine + 1]) for (const w of (L[curLine + 1].text.match(/\p{L}+/gu) || [])) glossFor(w);   // get next line's meanings early
-  lineTimes = wordTimes(line, lineSpans);
-  $("titleTr").textContent = line.en || "";
-  if (!line.en){
-    translateText(line.text).then(t => { line.en = t; if (current && current.lines && current.lines[curLine] === line) $("titleTr").textContent = t; }).catch(() => {});
-  }
 }
 setInterval(() => {
   if (!started || !current || !current.lines || !player || !player.getCurrentTime) return;
@@ -481,9 +532,8 @@ function renderInfo(){
   const v = current;
   v.clean = cleanTitle(v.title);
   $("title").classList.remove("live");
-  renderGloss($("title"), v.clean);
-  $("titleTr").textContent = "";
-  translateText(v.clean).then(t => { if (current === v) $("titleTr").textContent = t; }).catch(() => {});
+  renderTwin($("title"), $("titleTr"), v.clean, "");
+  translateText(v.clean).then(t => { if (current === v && !$("title").classList.contains("live") && t) renderTwin($("title"), $("titleTr"), v.clean, t); }).catch(() => {});
   $("channel").textContent = v.channel + " · YouTube";
   $("like").classList.toggle("on", S.liked.includes(v.id));
 }
@@ -524,11 +574,14 @@ async function lookup(raw, sentence){
   $("sheetTr").textContent = "…";
   $("sheetDef").textContent = "";
   // Highlight the tapped word under the video too
-  document.querySelectorAll("#title .w").forEach(x => x.classList.toggle("hl", (x.dataset.core || x.textContent.toLowerCase()) === word));
+  document.querySelectorAll(".w.hl").forEach(x => x.classList.remove("hl"));
+  document.querySelectorAll("#title .w").forEach(x => {
+    if (x.dataset.core === word){ x.classList.add("hl"); if (x._partner) x._partner.classList.add("hl"); }
+  });
   if (sentence){
-    renderSentence($("sheetSentence"), sentence, word);
-    $("sheetSentenceTr").textContent = $("titleTr").textContent;
-    if (!$("sheetSentenceTr").textContent) translateText(sentence).then(t => { if (id === lookupId) $("sheetSentenceTr").textContent = t; }).catch(() => {});
+    const enLine = $("titleTr").textContent.trim();
+    renderTwin($("sheetSentence"), $("sheetSentenceTr"), sentence, enLine, word);
+    if (!enLine) translateText(sentence).then(t => { if (id === lookupId && t) renderTwin($("sheetSentence"), $("sheetSentenceTr"), sentence, t, word); }).catch(() => {});
     $("sheetCtx").hidden = false;
   } else $("sheetCtx").hidden = true;
   $("backdrop").hidden = false;
@@ -546,6 +599,9 @@ function closeSheet(resume){
   document.querySelectorAll(".w.hl").forEach(x => x.classList.remove("hl"));
   if (resume && started) try { player.playVideo(); } catch(e){}
 }
+
+window.addEventListener("resize", () => { fitWidth($("title"), $("titleTr")); fitWidth($("sheetSentence"), $("sheetSentenceTr")); });
+if (document.fonts) document.fonts.ready.then(() => fitWidth($("title"), $("titleTr")));
 
 /* ===== GESTURES ===== */
 const touch = $("touch");
