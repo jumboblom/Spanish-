@@ -42,8 +42,8 @@ button,input{font:inherit;color:inherit}
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font-size:16px;-webkit-appearance:none;appearance:none;outline:none}
 .top input::-webkit-search-cancel-button{display:none}
 .top input::placeholder{color:var(--muted)}
-.top .mag{position:absolute;left:11px;top:50%;width:15px;height:15px;transform:translateY(-50%);color:var(--muted);pointer-events:none}
-.top .x{position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);width:32px;height:32px;font-size:13px;cursor:pointer}
+.top .mag{position:absolute;left:11px;top:50%;width:16px;height:16px;transform:translateY(-50%);color:var(--ink);opacity:.75;pointer-events:none;z-index:1}
+.top .x{z-index:1;position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);width:32px;height:32px;font-size:13px;cursor:pointer}
 .top .x[hidden]{display:none}
 
 /* Video card */
@@ -55,7 +55,7 @@ button,input{font:inherit;color:inherit}
 .big-heart.show{transform:translate(-50%,-50%) scale(1);opacity:.95}
 .paused{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);font-size:52px;color:#fff;opacity:0;pointer-events:none;transition:opacity .15s}
 .paused.show{opacity:.85}
-.msg{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;padding:28px;color:#fff;background:rgba(0,0,0,.72);font-size:17px}
+.msg{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;padding:28px;color:#fff;background:rgba(0,0,0,.72);font-size:17px}
 .msg[hidden]{display:none}
 .msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:600;cursor:pointer}
 
@@ -78,8 +78,16 @@ button,input{font:inherit;color:inherit}
 
 /* Channel row: replay, channel name, like */
 .chanrow{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:6px 12px 0}
-.mini{flex:0 0 auto;width:34px;height:34px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:17px;cursor:pointer;display:grid;place-items:center}
-#like.on{color:var(--heart)}
+/* Side buttons on the video, like TikTok / Reels */
+.side{position:absolute;right:10px;bottom:16%;z-index:5;display:flex;flex-direction:column;gap:16px;align-items:center}
+.sbtn{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:transparent;padding:0;cursor:pointer;color:#fff}
+.sbtn .disc{width:48px;height:48px;border-radius:999px;display:grid;place-items:center;background:rgba(0,0,0,.42);
+  border:1px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:transform .12s ease,background .15s}
+.sbtn:active .disc{transform:scale(.9)}
+.sbtn svg{width:24px;height:24px}
+.sbtn .lbl{font:600 12px/1 var(--sans);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+#like.on .disc{background:var(--heart);border-color:var(--heart)}
+#like.on svg path{fill:#fff}
 
 /* Word card */
 .backdrop{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.5)}
@@ -105,25 +113,33 @@ button,input{font:inherit;color:inherit}
 <div class="top">
   <form id="lookupForm" onsubmit="return false">
     <svg class="mag" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    <input id="lookupInput" type="search" placeholder="Word" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Look up a Spanish word">
+    <input id="lookupInput" type="search" placeholder="Search words" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Look up a Spanish word">
   </form>
   <form id="searchForm" onsubmit="return false" role="search">
     <svg class="mag" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    <input id="searchInput" type="search" placeholder="Clips" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search clips, blank for the mix">
+    <input id="searchInput" type="search" placeholder="Search clips" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search clips, blank for the mix">
     <button type="button" class="x" id="searchClear" aria-label="Clear search" hidden>✕</button>
   </form>
 </div>
 
 <div class="chanrow">
-  <button class="mini" id="replay" aria-label="Replay clip">↻</button>
   <p class="chan" id="channel"></p>
-  <button class="mini" id="like" aria-label="Like clip">♥</button>
 </div>
 
 <div class="stage" id="stage">
   <div class="frame">
     <div id="player"></div>
     <div class="touch" id="touch" aria-label="Tap to pause, double-tap to like, swipe up for next clip"></div>
+    <div class="side">
+      <button class="sbtn" id="like" aria-label="Like clip">
+        <span class="disc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+        <span class="lbl" id="likeLbl">Like</span>
+      </button>
+      <button class="sbtn" id="replay" aria-label="Replay clip">
+        <span class="disc"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg></span>
+        <span class="lbl">Replay</span>
+      </button>
+    </div>
     <div class="big-heart" id="bigHeart">♥</div>
     <div class="paused" id="pausedIcon">❚❚</div>
     <div class="msg" id="msg"><div id="msgText">Loading clips…</div><button id="msgBtn" hidden>Start</button></div>
@@ -340,7 +356,7 @@ function setLike(on){
   const has = S.liked.includes(current.id);
   if (on && !has){ S.liked.push(current.id); bumpChannel(current, 3); bumpWords(current, 1); }
   if (!on && has){ S.liked = S.liked.filter(x => x !== current.id); bumpChannel(current, -3); bumpWords(current, -1); }
-  save(); $("like").classList.toggle("on", on);
+  save(); $("like").classList.toggle("on", on); $("likeLbl").textContent = on ? "Liked" : "Like";
 }
 
 /* ===== BACKGROUND GLOW ===== */
@@ -635,7 +651,8 @@ function renderInfo(){
   // Subtitle area shows only real spoken lines. Never the video title.
   showNoLines(TRANSCRIPT_URL ? "" : "Add your TRANSCRIPT_URL to see spoken lines.");
   $("channel").textContent = v.channel;
-  $("like").classList.toggle("on", S.liked.includes(v.id));
+  const liked = S.liked.includes(v.id);
+  $("like").classList.toggle("on", liked); $("likeLbl").textContent = liked ? "Liked" : "Like";
 }
 
 function showNoLines(note){
