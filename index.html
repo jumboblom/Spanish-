@@ -10,74 +10,89 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#ffffff; --ink:#18181b; --muted:#71717a; --line:#e4e4e7; --card:#ffffff;
-  --mark:#ffd84d; --mark-ink:#18181b; --heart:#e11d48;
+  --paper:#f3ebdd; --ink:#1f1a17; --muted:#7a7068; --line:#e3d8c6; --card:#fffdf8; --pill:#f8f2e7;
+  --mark:#fbe3a6; --mark-ink:#1f1a17; --heart:#d81b60;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --sans:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   color-scheme:light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
-  :root{ --paper:#000000; --ink:#f4f4f5; --muted:#a1a1aa; --line:#27272a; --card:#18181b; --mark:#ffd84d; --mark-ink:#18181b; color-scheme:dark; }
+  :root{ --paper:#171310; --ink:#f1e9dc; --muted:#a39886; --line:#2e2721; --card:#221c17; --pill:#201a15;
+    --mark:#7a5d1e; --mark-ink:#fff6e0; color-scheme:dark; }
 }
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{
-  background:var(--paper); color:var(--ink);
-  font:16px/1.45 "Atkinson Hyperlegible",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  display:flex; flex-direction:column; overflow:hidden;
-  -webkit-tap-highlight-color:transparent;
-}
+body{background:var(--paper);color:var(--ink);font:16px/1.45 var(--sans);display:flex;flex-direction:column;overflow:hidden;-webkit-tap-highlight-color:transparent}
 button,input{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+:focus-visible{outline:2px solid var(--heart);outline-offset:2px}
 
-/* Video area */
-.stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;background:#000}
-.frame{position:relative;height:100%;aspect-ratio:9/16;max-width:100%}
+/* Search bar */
+.top{flex:0 0 auto;padding:10px 16px 0}
+.top form{position:relative}
+.top input{width:100%;padding:10px 44px 10px 16px;border:1px solid var(--line);border-radius:999px;background:var(--pill);font-size:15px;-webkit-appearance:none;appearance:none}
+.top input::-webkit-search-cancel-button{display:none}
+.top .x{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);min-width:40px;min-height:40px;font-size:16px;cursor:pointer}
+.top .x[hidden]{display:none}
+
+/* Video card */
+.stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;padding:12px 16px 0}
+.frame{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(70,45,20,.14)}
 #player{position:absolute;inset:0;width:100%;height:100%;border:0}
 .touch{position:absolute;inset:0;z-index:2;touch-action:none;cursor:pointer}
-.big-heart{position:absolute;left:50%;top:50%;z-index:3;font-size:96px;color:var(--heart);
-  transform:translate(-50%,-50%) scale(.4);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .35s ease}
+.big-heart{position:absolute;left:50%;top:50%;z-index:3;font-size:96px;color:var(--heart);transform:translate(-50%,-50%) scale(.4);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .35s ease}
 .big-heart.show{transform:translate(-50%,-50%) scale(1);opacity:.95}
-.paused{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);font-size:56px;color:#fff;opacity:0;pointer-events:none;transition:opacity .15s}
+.paused{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);font-size:52px;color:#fff;opacity:0;pointer-events:none;transition:opacity .15s}
 .paused.show{opacity:.85}
-.msg{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;
-  text-align:center;padding:28px;color:#fff;background:rgba(0,0,0,.72);font-size:17px}
+.msg{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;text-align:center;padding:28px;color:#fff;background:rgba(20,14,8,.72);font-size:17px}
 .msg[hidden]{display:none}
-.msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:700;cursor:pointer}
+.msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:600;cursor:pointer}
 
-/* Panel under video */
-.panel{flex:0 0 auto;padding:12px 16px 14px;border-top:1px solid var(--line);max-height:40%;overflow-y:auto}
-.title{font-size:19px;line-height:1.55;margin:0 0 4px;word-wrap:break-word}
-.w{cursor:pointer;border-radius:3px;padding:0 1px;transition:background .15s}
-.w.on{background:var(--mark);color:var(--mark-ink)}
-.meta{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:14px;margin-bottom:10px}
-.channel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.acts{display:flex;gap:6px;flex:0 0 auto}
-.icon{border:1px solid var(--line);background:transparent;border-radius:999px;min-width:44px;min-height:44px;font-size:18px;cursor:pointer}
-#like.on{color:var(--heart);border-color:var(--heart)}
-.lookup{display:flex;gap:8px}
-.lookup input{flex:1;min-width:0;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
-.lookup button{border:0;border-radius:12px;padding:0 16px;min-height:44px;background:var(--ink);color:var(--paper);font-weight:700;cursor:pointer}
+/* Sentence under video */
+.panel{flex:0 0 auto;padding:16px 26px 4px;max-height:36%;overflow-y:auto}
+.es{font-family:var(--serif);font-size:25px;line-height:1.38;font-weight:500;margin:0;word-wrap:break-word}
+.w{cursor:pointer;border-radius:6px;padding:0 2px;margin:0 -2px;transition:background .15s}
+.w.hl{background:var(--mark);color:var(--mark-ink);font-weight:700}
+.en{margin:6px 0 0;color:var(--muted);font-size:16px;min-height:1.45em}
+.meta{margin:14px 0 0;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* Meaning sheet */
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);
-  border-radius:18px 18px 0 0;padding:18px 20px calc(18px + env(safe-area-inset-bottom,0px));
-  transform:translateY(105%);transition:transform .2s ease;max-height:62%;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+/* Bottom bar */
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:8px 16px 12px;padding:6px;background:var(--pill);border:1px solid var(--line);border-radius:999px}
+.bar .icon{flex:0 0 auto;width:46px;height:46px;border:0;border-radius:999px;background:transparent;font-size:20px;cursor:pointer;display:grid;place-items:center}
+#like.on{background:var(--mark);color:var(--heart)}
+.bar form{flex:1;min-width:0}
+.bar input{width:100%;border:0;background:transparent;padding:10px 12px;font-size:15px;outline:none}
+
+/* Word card */
+.backdrop{position:fixed;inset:0;z-index:9;background:rgba(40,28,16,.28)}
+.backdrop[hidden]{display:none}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-radius:24px 24px 0 0;
+  padding:26px 26px calc(26px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .22s ease;max-height:70%;overflow-y:auto;
+  box-shadow:0 -12px 40px rgba(40,28,16,.18);touch-action:pan-y}
+.sheet::before{content:"";position:absolute;top:10px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--line)}
 .sheet.open{transform:none}
-.sheet .word{margin:0;font-size:26px;font-weight:700}
-.sheet .tr{margin:2px 0 12px;font-size:18px}
-.sheet ol{margin:0 0 14px;padding-left:20px;color:var(--muted);font-size:15px}
-.sheet li{margin-bottom:6px}
-.sheet .pos{font-style:italic}
-.sheet .resume{width:100%;border:0;border-radius:12px;min-height:46px;background:var(--ink);color:var(--paper);font-weight:700;cursor:pointer}
+.sheet .word{margin:0;font-family:var(--serif);font-size:32px;font-weight:700;line-height:1.2}
+.sheet .wtr{margin:4px 0 0;font-size:18px}
+.sheet .def{margin:4px 0 0;color:var(--muted);font-size:14px}
+.ctx{margin-top:22px}
+.ctx[hidden]{display:none}
+.ctx .es{font-size:22px}
 @media (prefers-reduced-motion: reduce){ .sheet,.big-heart,.w{transition:none} }
 </style>
 </head>
 <body>
+
+<div class="top">
+  <form id="searchForm" onsubmit="return false" role="search">
+    <input id="searchInput" type="search" placeholder="Search clips, or leave blank for the mix" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search clips">
+    <button type="button" class="x" id="searchClear" aria-label="Clear search" hidden>✕</button>
+  </form>
+</div>
 
 <div class="stage" id="stage">
   <div class="frame">
@@ -90,40 +105,53 @@ button,input{font:inherit;color:inherit}
 </div>
 
 <div class="panel">
-  <p class="title" id="title"></p>
-  <div class="meta">
-    <span class="channel" id="channel"></span>
-    <span class="acts">
-      <button class="icon" id="replay" aria-label="Replay clip">↻</button>
-      <button class="icon" id="like" aria-label="Like clip">♥</button>
-    </span>
-  </div>
-  <form class="lookup" id="lookupForm" onsubmit="return false">
-    <input id="lookupInput" type="text" placeholder="Type a Spanish word" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-    <button id="lookupBtn" type="submit">Look up</button>
+  <p class="es" id="title" lang="es"></p>
+  <p class="en" id="titleTr"></p>
+  <p class="meta" id="channel"></p>
+</div>
+
+<div class="bar">
+  <button class="icon" id="like" aria-label="Like clip">♥</button>
+  <button class="icon" id="replay" aria-label="Replay clip">↻</button>
+  <form id="lookupForm" onsubmit="return false">
+    <input id="lookupInput" type="text" placeholder="Look up a word you heard" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Look up a Spanish word">
   </form>
 </div>
 
-<div class="sheet" id="sheet" role="dialog" aria-modal="false" aria-labelledby="sheetWord">
-  <p class="word" id="sheetWord"></p>
-  <p class="tr" id="sheetTr"></p>
-  <ol id="sheetDefs"></ol>
-  <button class="resume" id="resume">Resume clip</button>
+<div class="backdrop" id="backdrop" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-labelledby="sheetWord">
+  <p class="word" id="sheetWord" lang="es"></p>
+  <p class="wtr" id="sheetTr"></p>
+  <p class="def" id="sheetDef"></p>
+  <div class="ctx" id="sheetCtx" hidden>
+    <p class="es" id="sheetSentence" lang="es"></p>
+    <p class="en" id="sheetSentenceTr"></p>
+  </div>
 </div>
 
 <script>
 /* ===== SETTINGS ===== */
-const API_KEY = "AIzaSyDeDKkYb4DBV4hNzmyVSQRmddwqLBKi20k"; // ← paste your YouTube Data API key between the quotes
+const API_KEY = "PASTE_YOUR_API_KEY_HERE"; // ← paste your YouTube Data API key between the quotes
 
-// Mix of all levels and topics. Edit freely.
-const BASE_QUERIES = [
-  "español para principiantes #shorts", "aprender español #shorts", "frases en español #shorts",
-  "vocabulario español #shorts", "español intermedio #shorts", "expresiones en español #shorts",
-  "historias cortas en español #shorts", "receta fácil #shorts", "curiosidades en español #shorts",
-  "viajar por España #shorts", "cultura mexicana #shorts", "humor en español #shorts",
-  "expresiones coloquiales #shorts", "gramática española #shorts", "conversación en español #shorts",
-  "datos curiosos #shorts", "argentina vida diaria #shorts", "colombia comida #shorts"
-];
+// Default mix when the search bar is blank. Edit, add, or remove freely.
+const CATEGORIES = {
+  "Lessons":      ["aprender español #shorts", "español para principiantes #shorts", "gramática española #shorts", "vocabulario español #shorts", "español intermedio #shorts"],
+  "Phrases":      ["frases en español #shorts", "expresiones en español #shorts", "expresiones coloquiales #shorts", "modismos #shorts"],
+  "Stories":      ["historias cortas en español #shorts", "cuentos en español #shorts", "storytime en español #shorts"],
+  "Food":         ["receta fácil #shorts", "comida mexicana #shorts", "colombia comida #shorts", "comida callejera #shorts"],
+  "Travel":       ["viajar por España #shorts", "lugares de México #shorts", "viaje Sudamérica #shorts"],
+  "Culture":      ["cultura mexicana #shorts", "tradiciones de España #shorts", "argentina vida diaria #shorts"],
+  "Fun facts":    ["curiosidades en español #shorts", "datos curiosos #shorts", "sabías que #shorts"],
+  "Humor":        ["humor en español #shorts", "comedia en español #shorts"],
+  "Street talk":  ["conversación en español #shorts", "entrevistas en la calle #shorts", "preguntas en la calle #shorts"],
+  "Sports":       ["fútbol en español #shorts", "deportes en español #shorts"],
+  "Music":        ["música en español #shorts", "historia de la música latina #shorts"]
+};
+function activeQueries(){
+  const t = (S.search || "").trim();
+  if (t) return [t + " #shorts", t + " en español #shorts", t + " español", t];
+  return Object.values(CATEGORIES).flat();
+}
 
 const STOP = new Set(("para como pero este esta esto estos estas porque cuando sobre también hasta donde desde todo todos " +
   "durante contra otros otro otra otras ellos ellas nosotros vosotros antes algunos algunas mucho muchos nada " +
@@ -132,7 +160,9 @@ const STOP = new Set(("para como pero este esta esto estos estas porque cuando s
 
 /* ===== SAVED TASTE (stays on this phone) ===== */
 const STORE = "spanishClips.v1";
-function blank(){ return {channels:{}, words:{}, skips:{}, blocked:[], seen:[], liked:[]}; }
+function blank(){ return {channels:{}, words:{}, skips:{}, blocked:[], seen:[], liked:[], search:""}; }
+// Open the app link with #reset at the end to wipe saved taste and start fresh.
+if (location.hash === "#reset"){ try { localStorage.removeItem(STORE); } catch(e){} window.history.replaceState(null, "", location.pathname); }
 let S = (() => { try { return Object.assign(blank(), JSON.parse(localStorage.getItem(STORE)) || {}); } catch(e){ return blank(); } })();
 function save(){ try { if (S.seen.length > 3000) S.seen = S.seen.slice(-3000); localStorage.setItem(STORE, JSON.stringify(S)); } catch(e){} }
 
@@ -143,7 +173,7 @@ function showMsg(text, btn){ msgText.textContent = text; msgBtn.hidden = !btn; i
 function hideMsg(){ msg.hidden = true; }
 
 /* ===== FEED ===== */
-let queue = [], history = [], pos = -1, current = null, fetching = null, started = false;
+let queue = [], history = [], pos = -1, current = null, fetching = null, started = false, topicGen = 0;
 
 function decode(s){ const t = document.createElement("textarea"); t.innerHTML = s; return t.value; }
 function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -154,38 +184,81 @@ function weightedPick(obj, score){
   for (const [k, v] of list){ r -= score(v); if (r <= 0) return k; }
   return null;
 }
+function randomBase(exclude){
+  let q;
+  const list = activeQueries();
+  do { q = list[Math.floor(Math.random() * list.length)]; } while (q === exclude && list.length > 1);
+  return { q };
+}
 function pickPlan(){
-  if (Math.random() < 0.6){
+  // Taste share grows only after you like several different channels.
+  const likedChannels = Object.values(S.channels).filter(v => v.score > 0).length;
+  const share = likedChannels >= 3 ? 0.6 : likedChannels >= 1 ? 0.25 : 0;
+  if (Math.random() < share){
     const ch = weightedPick(S.channels, v => v.score);
     const w = weightedPick(S.words, v => v);
-    if (ch && (!w || Math.random() < 0.5)) return { channelId: ch };
-    if (w) return { q: w + " #shorts" };
+    const filtered = !!(S.search || "").trim();
+    // With a search, liked channels are searched only for that search.
+    if (ch && (!w || Math.random() < 0.5)) return filtered ? { channelId: ch, q: randomBase().q } : { channelId: ch };
+    if (w && !filtered) return { q: w + " #shorts" };
   }
-  return { q: BASE_QUERIES[Math.floor(Math.random() * BASE_QUERIES.length)] };
+  return randomBase();
+}
+
+const pageTokens = {};
+async function searchOnce(plan){
+  const p = new URLSearchParams({ part:"snippet", type:"video", videoDuration:"short", videoCaption:"closedCaption",
+    videoEmbeddable:"true", relevanceLanguage:"es", maxResults:"25", key:API_KEY });
+  if (plan.channelId) p.set("channelId", plan.channelId);
+  if (plan.q) p.set("q", plan.q);
+  const key = (plan.channelId || "") + "|" + (plan.q || "");
+  if (pageTokens[key]) p.set("pageToken", pageTokens[key]);
+  const r = await fetch("https://www.googleapis.com/youtube/v3/search?" + p);
+  const d = await r.json();
+  if (d.error){
+    const reason = (d.error.errors && d.error.errors[0] && d.error.errors[0].reason) || "";
+    if (reason === "quotaExceeded") throw new Error("Daily search limit reached. New clips return tomorrow.");
+    throw new Error("YouTube refused the request (" + (reason || d.error.message) + "). Check your API key and its restrictions.");
+  }
+  if (d.nextPageToken) pageTokens[key] = d.nextPageToken; else delete pageTokens[key];
+  return (d.items || []).filter(it => it.id && it.id.videoId)
+    .map(it => ({ id: it.id.videoId, title: decode(it.snippet.title), channelId: it.snippet.channelId, channel: decode(it.snippet.channelTitle) }));
+}
+
+// Add clips so the same channel never appears within 3 clips of itself (when possible).
+function addSpaced(items){
+  const pending = items.slice();
+  while (pending.length){
+    const recent = history.concat(queue).slice(-3).map(v => v.channelId);
+    const i = pending.findIndex(v => !recent.includes(v.channelId));
+    queue.push(pending.splice(i >= 0 ? i : 0, 1)[0]);
+  }
 }
 
 function fetchMore(){
   if (fetching) return fetching;
+  const gen = topicGen;
   fetching = (async () => {
-    for (let attempt = 0; attempt < 2; attempt++){
-      const plan = attempt === 0 ? pickPlan() : { q: BASE_QUERIES[Math.floor(Math.random() * BASE_QUERIES.length)] };
-      const p = new URLSearchParams({ part:"snippet", type:"video", videoDuration:"short", videoCaption:"closedCaption",
-        videoEmbeddable:"true", relevanceLanguage:"es", maxResults:"25", key:API_KEY });
-      if (plan.channelId) p.set("channelId", plan.channelId);
-      if (plan.q) p.set("q", plan.q);
-      const r = await fetch("https://www.googleapis.com/youtube/v3/search?" + p);
-      const d = await r.json();
-      if (d.error){
-        const reason = (d.error.errors && d.error.errors[0] && d.error.errors[0].reason) || "";
-        if (reason === "quotaExceeded") throw new Error("Daily search limit reached. New clips return tomorrow.");
-        throw new Error("YouTube refused the request (" + (reason || d.error.message) + "). Check your API key and its restrictions.");
-      }
+    for (let round = 0; round < 2; round++){
+      // Two different searches per round, mixed together, so one topic never takes over.
+      const a = round === 0 ? pickPlan() : randomBase();
+      const b = randomBase(a.q);
+      const results = await Promise.all([searchOnce(a), searchOnce(b)]);
       const seen = new Set(S.seen), blocked = new Set(S.blocked);
       const have = new Set(queue.concat(history).map(v => v.id));
-      const items = (d.items || []).filter(it => it.id && it.id.videoId)
-        .map(it => ({ id: it.id.videoId, title: decode(it.snippet.title), channelId: it.snippet.channelId, channel: decode(it.snippet.channelTitle) }))
-        .filter(v => !seen.has(v.id) && !blocked.has(v.channelId) && !have.has(v.id));
-      if (items.length){ queue.push(...shuffle(items)); return; }
+      const perChannel = {}, fresh = [];
+      for (const list of results){
+        let taken = 0;
+        for (const v of shuffle(list)){
+          if (taken >= 10) break;                                  // max 10 clips per search
+          if (seen.has(v.id) || blocked.has(v.channelId) || have.has(v.id)) continue;
+          if ((perChannel[v.channelId] || 0) >= 2) continue;       // max 2 clips per channel per batch
+          perChannel[v.channelId] = (perChannel[v.channelId] || 0) + 1;
+          have.add(v.id); fresh.push(v); taken++;
+        }
+      }
+      if (gen !== topicGen) return;                                // feed reset mid-search
+      if (fresh.length){ addSpaced(shuffle(fresh)); return; }
     }
   })().finally(() => { fetching = null; });
   return fetching;
@@ -232,7 +305,7 @@ function setLike(on){
 let player = null;
 window.onYouTubeIframeAPIReady = () => {
   player = new YT.Player("player", {
-    playerVars: { playsinline:1, cc_load_policy:1, cc_lang_pref:"es", hl:"es", rel:0, controls:0, modestbranding:1, iv_load_policy:3, disablekb:1, fs:0 },
+    playerVars: { playsinline:1, cc_load_policy:1, cc_lang_pref:"en", hl:"en", rel:0, controls:0, modestbranding:1, iv_load_policy:3, disablekb:1, fs:0 },
     events: {
       onReady: boot,
       onStateChange: e => {
@@ -240,7 +313,11 @@ window.onYouTubeIframeAPIReady = () => {
           $("pausedIcon").classList.remove("show");
           if (current){ current.played = true;
             if (!current.ccSet){ current.ccSet = true;
-              try { player.loadModule("captions"); player.setOption("captions", "track", { languageCode: "es" }); } catch(err){} } }
+              try {
+                player.loadModule("captions");
+                player.setOption("captions", "fontSize", 3); // biggest caption size (range -1 to 3)
+                player.setOption("captions", "track", { languageCode: "en" });
+              } catch(err){} } }
         }
         if (e.data === YT.PlayerState.ENDED){
           if (current && !current.done){ current.done = true; bumpChannel(current, 1); save(); }
@@ -277,56 +354,86 @@ function togglePlay(){
 }
 
 /* ===== INFO PANEL ===== */
-function renderInfo(){
-  const title = $("title"); title.textContent = "";
-  for (const part of current.title.split(/(\p{L}+)/u)){
+// Optional: put your email here to raise the free translation limit from 5,000 to 50,000 characters per day.
+const MYMEMORY_EMAIL = "";
+
+function cleanTitle(t){ return t.replace(/#[^\s#]+/g, "").replace(/\s{2,}/g, " ").trim() || t; }
+function renderSentence(el, text, highlight){
+  el.textContent = "";
+  for (const part of text.split(/(\p{L}+)/u)){
     if (/^\p{L}+$/u.test(part)){
       const s = document.createElement("span"); s.className = "w"; s.textContent = part;
-      s.addEventListener("click", () => { document.querySelectorAll(".w.on").forEach(x => x.classList.remove("on")); s.classList.add("on"); lookup(part); });
-      title.appendChild(s);
-    } else title.appendChild(document.createTextNode(part));
+      if (highlight && part.toLowerCase() === highlight) s.classList.add("hl");
+      s.addEventListener("click", () => lookup(part, text));
+      el.appendChild(s);
+    } else el.appendChild(document.createTextNode(part));
   }
-  $("channel").textContent = current.channel;
-  $("like").classList.toggle("on", S.liked.includes(current.id));
+}
+function renderInfo(){
+  const v = current;
+  v.clean = cleanTitle(v.title);
+  renderSentence($("title"), v.clean);
+  $("titleTr").textContent = "";
+  translateText(v.clean).then(t => { if (current === v) $("titleTr").textContent = t; }).catch(() => {});
+  $("channel").textContent = v.channel + " · YouTube";
+  $("like").classList.toggle("on", S.liked.includes(v.id));
 }
 
 /* ===== DICTIONARY ===== */
+const trCache = {};
+async function translateText(text){
+  const key = text.toLowerCase();
+  if (trCache[key] !== undefined) return trCache[key];
+  let url = "https://api.mymemory.translated.net/get?langpair=es|en&q=" + encodeURIComponent(text);
+  if (MYMEMORY_EMAIL) url += "&de=" + encodeURIComponent(MYMEMORY_EMAIL);
+  const r = await fetch(url);
+  const d = await r.json();
+  let out = (d && Number(d.responseStatus) === 200 && d.responseData) ? (d.responseData.translatedText || "") : "";
+  if (out.toLowerCase() === key) out = "";
+  trCache[key] = out;
+  return out;
+}
 let lookupId = 0;
 function stripHtml(h){ return (new DOMParser().parseFromString(h, "text/html").body.textContent || "").trim(); }
-async function translate(word){
-  const r = await fetch("https://api.mymemory.translated.net/get?langpair=es|en&q=" + encodeURIComponent(word));
-  const d = await r.json();
-  return d && d.responseData ? d.responseData.translatedText : "";
-}
 async function define(word){
-  if (/\s/.test(word)) return [];
+  if (/\s/.test(word)) return null;
   const r = await fetch("https://en.wiktionary.org/api/rest_v1/page/definition/" + encodeURIComponent(word));
-  if (!r.ok) return [];
+  if (!r.ok) return null;
   const d = await r.json();
-  return (d.es || []).flatMap(e => (e.definitions || []).map(x => ({ pos: e.partOfSpeech, text: stripHtml(x.definition || "") })))
-                     .filter(x => x.text).slice(0, 3);
+  for (const e of (d.es || [])) for (const x of (e.definitions || [])){
+    const t = stripHtml(x.definition || "");
+    if (t) return e.partOfSpeech.toLowerCase() + " · " + t;
+  }
+  return null;
 }
-async function lookup(raw){
+async function lookup(raw, sentence){
   const word = raw.toLowerCase().replace(/[^\p{L}\s'-]/gu, "").trim();
   if (!word) return;
   const id = ++lookupId;
   try { if (started) player.pauseVideo(); } catch(e){}
-  $("sheetWord").textContent = word; $("sheetTr").textContent = "Looking up…"; $("sheetDefs").textContent = "";
+  $("sheetWord").textContent = word;
+  $("sheetTr").textContent = "…";
+  $("sheetDef").textContent = "";
+  // Highlight the tapped word under the video too
+  document.querySelectorAll("#title .w").forEach(x => x.classList.toggle("hl", x.textContent.toLowerCase() === word));
+  if (sentence){
+    renderSentence($("sheetSentence"), sentence, word);
+    $("sheetSentenceTr").textContent = $("titleTr").textContent;
+    $("sheetCtx").hidden = false;
+  } else $("sheetCtx").hidden = true;
+  $("backdrop").hidden = false;
   $("sheet").classList.add("open");
-  const [tr, defs] = await Promise.allSettled([translate(word), define(word)]);
+  const [tr, def] = await Promise.allSettled([translateText(word), define(word)]);
   if (id !== lookupId) return;
   const t = tr.status === "fulfilled" ? tr.value : "";
-  $("sheetTr").textContent = t && t.toLowerCase() !== word ? t : (t ? t : "No translation found.");
-  const list = defs.status === "fulfilled" ? defs.value : [];
-  for (const d of list){
-    const li = document.createElement("li");
-    const p = document.createElement("span"); p.className = "pos"; p.textContent = d.pos + ": ";
-    li.append(p, d.text); $("sheetDefs").appendChild(li);
-  }
+  const dd = def.status === "fulfilled" ? def.value : null;
+  $("sheetTr").textContent = t || (dd ? "" : "No meaning found.");
+  $("sheetDef").textContent = dd || "";
 }
 function closeSheet(resume){
   $("sheet").classList.remove("open");
-  document.querySelectorAll(".w.on").forEach(x => x.classList.remove("on"));
+  $("backdrop").hidden = true;
+  document.querySelectorAll(".w.hl").forEach(x => x.classList.remove("hl"));
   if (resume && started) try { player.playVideo(); } catch(e){}
 }
 
@@ -360,7 +467,36 @@ document.addEventListener("keydown", e => {
 $("like").addEventListener("click", () => setLike(!S.liked.includes(current && current.id)));
 $("replay").addEventListener("click", () => { if (started){ player.seekTo(0); player.playVideo(); } });
 $("lookupForm").addEventListener("submit", () => { const v = $("lookupInput").value; if (v.trim()){ lookup(v); $("lookupInput").blur(); } });
-$("resume").addEventListener("click", () => closeSheet(true));
+$("backdrop").addEventListener("click", () => closeSheet(true));
+// Swipe the word card down to close it
+let sheetY = 0;
+$("sheet").addEventListener("touchstart", e => { sheetY = e.touches[0].clientY; }, { passive: true });
+$("sheet").addEventListener("touchend", e => {
+  if ($("sheet").scrollTop <= 0 && e.changedTouches[0].clientY - sheetY > 60) closeSheet(true);
+}, { passive: true });
+
+/* ===== SEARCH BAR ===== */
+const searchInput = $("searchInput"), searchClear = $("searchClear");
+searchInput.value = S.search || "";
+searchClear.hidden = !searchInput.value;
+searchInput.addEventListener("input", () => { searchClear.hidden = !searchInput.value; });
+function applySearch(term){
+  term = term.trim();
+  searchInput.blur();
+  if (term === (S.search || "")) return;
+  S.search = term; save();
+  queue = []; topicGen++; fetching = null;   // drop clips from the old search
+  if (started){ history = history.slice(0, pos + 1); next(); }
+  else {
+    showMsg("Loading clips…");
+    fetchMore().then(() => queue.length
+        ? showMsg("Swipe up for next clip. Tap to pause. Double-tap to like.", "Start")
+        : showMsg("No clips found for that search. Try other words."))
+      .catch(err => showMsg(err.message));
+  }
+}
+$("searchForm").addEventListener("submit", () => applySearch(searchInput.value));
+searchClear.addEventListener("click", () => { searchInput.value = ""; searchClear.hidden = true; applySearch(""); });
 
 /* ===== START ===== */
 function boot(){
