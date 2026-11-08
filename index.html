@@ -36,19 +36,19 @@ button,input{font:inherit;color:inherit}
 .ambient::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(20,20,22,.25),rgba(20,20,22,.55) 70%,rgba(20,20,22,.75))}
 
 /* Top bar: two small search fields side by side */
-.top{flex:0 0 auto;display:flex;gap:8px;padding:8px 12px 0}
+.top{flex:0 0 auto;display:flex;gap:6px;padding:2px 12px 0}
 .top form{position:relative;flex:1;min-width:0}
-.top input{width:100%;height:36px;padding:0 30px 0 32px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:var(--glass);
+.top input{width:100%;height:28px;padding:0 26px 0 27px;line-height:28px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:var(--glass);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font-size:16px;-webkit-appearance:none;appearance:none;outline:none}
 .top input::-webkit-search-cancel-button{display:none}
-.top input::placeholder{color:var(--muted)}
-.top .mag{position:absolute;left:11px;top:50%;width:16px;height:16px;transform:translateY(-50%);color:var(--ink);opacity:.75;pointer-events:none;z-index:1}
-.top .x{z-index:1;position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);width:32px;height:32px;font-size:13px;cursor:pointer}
+.top input::placeholder{color:var(--muted);font-size:14px}
+.top .mag{position:absolute;left:10px;top:50%;width:12px;height:12px;transform:translateY(-50%);color:var(--ink);opacity:.75;pointer-events:none;z-index:1}
+.top .x{z-index:1;position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);width:26px;height:26px;font-size:11px;cursor:pointer}
 .top .x[hidden]{display:none}
 
 /* Video card */
-.stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;padding:10px 16px 0;max-height:68vh}
-.frame{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;align-items:center;padding:8px 12px 0}
+.frame{position:relative;flex:0 0 auto;width:100%;height:100%;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(0,0,0,.45)}
 #player{position:absolute;left:50%;top:50%;width:calc(100% * var(--zoom,1));height:calc(100% * var(--zoom,1));transform:translate(-50%,-50%);border:0}
 .touch{position:absolute;inset:0;z-index:2;touch-action:none;cursor:pointer}
 .big-heart{position:absolute;left:50%;top:50%;z-index:3;font-size:96px;color:var(--heart);transform:translate(-50%,-50%) scale(.4);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .35s ease}
@@ -60,7 +60,7 @@ button,input{font:inherit;color:inherit}
 .msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:600;cursor:pointer}
 
 /* Sentence under video */
-.panel{flex:0 0 auto;padding:18px 14px 8px;text-align:center}
+.panel{flex:0 0 auto;padding:12px 14px 12px;text-align:center}
 /* Exactly one Spanish line + one English line, same size, auto-shrunk to fit */
 #title,#titleTr{font-size:25px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:640px;margin:0 auto;padding-bottom:6px}
 #title,#titleTr{min-height:calc(1.35em + 6px)}
@@ -74,18 +74,15 @@ button,input{font:inherit;color:inherit}
 .live .w.said{color:var(--ink);font-weight:700}
 .w.hl{background:var(--mark);color:var(--mark-ink);font-weight:700}
 .en{margin:6px auto 0;color:var(--muted);font-size:15px;line-height:1.5;min-height:1.45em;max-width:30em}
-.chan{flex:1;min-width:0;margin:0;text-align:center;font-size:14px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* Channel row: replay, channel name, like */
-.chanrow{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:6px 12px 0}
 /* Side buttons on the video, like TikTok / Reels */
-.side{position:absolute;right:10px;bottom:16%;z-index:5;display:flex;flex-direction:column;gap:16px;align-items:center}
-.sbtn{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:transparent;padding:0;cursor:pointer;color:#fff}
-.sbtn .disc{width:48px;height:48px;border-radius:999px;display:grid;place-items:center;background:rgba(0,0,0,.42);
+.side{position:absolute;right:8px;top:8px;z-index:5;display:flex;flex-direction:column;gap:10px;align-items:center;opacity:.8}
+.sbtn{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;padding:0;cursor:pointer;color:#fff}
+.sbtn .disc{width:34px;height:34px;border-radius:999px;display:grid;place-items:center;background:rgba(0,0,0,.22);
   border:1px solid rgba(255,255,255,.16);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:transform .12s ease,background .15s}
 .sbtn:active .disc{transform:scale(.9)}
-.sbtn svg{width:24px;height:24px}
-.sbtn .lbl{font:600 12px/1 var(--sans);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.sbtn svg{width:17px;height:17px}
+.sbtn .lbl{font:600 9px/1 var(--sans);text-shadow:0 1px 3px rgba(0,0,0,.8)}
 #like.on .disc{background:var(--heart);border-color:var(--heart)}
 #like.on svg path{fill:#fff}
 
@@ -122,9 +119,7 @@ button,input{font:inherit;color:inherit}
   </form>
 </div>
 
-<div class="chanrow">
-  <p class="chan" id="channel"></p>
-</div>
+
 
 <div class="stage" id="stage">
   <div class="frame">
@@ -711,7 +706,6 @@ function renderInfo(){
   v.clean = cleanTitle(v.title);
   // Subtitle area shows only real spoken lines. Never the video title.
   showNoLines(TRANSCRIPT_URL ? "" : "Add your TRANSCRIPT_URL to see spoken lines.");
-  $("channel").textContent = v.channel;
   const liked = S.liked.includes(v.id);
   $("like").classList.toggle("on", liked); $("likeLbl").textContent = liked ? "Liked" : "Like";
 }
@@ -825,6 +819,19 @@ function closeSheet(resume){
 
 window.addEventListener("resize", () => { fitWidth($("title"), $("titleTr")); fitWidth($("sheetSentence"), $("sheetSentenceTr")); });
 if (document.fonts) document.fonts.ready.then(() => fitWidth($("title"), $("titleTr")));
+
+function fitFrame(){
+  const st = $("stage"), f = document.querySelector(".frame"), cs = getComputedStyle(st);
+  const w = st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const h = st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  if (w <= 0 || h <= 0) return;
+  let fw = w, fh = w * 16 / 9;
+  if (fh > h){ fh = h; fw = h * 9 / 16; }          // whole 9:16 video always visible
+  f.style.width = Math.floor(fw) + "px"; f.style.height = Math.floor(fh) + "px";
+}
+if (window.ResizeObserver) new ResizeObserver(fitFrame).observe($("stage"));
+window.addEventListener("resize", fitFrame);
+fitFrame();
 
 /* ===== GESTURES ===== */
 const touch = $("touch");
