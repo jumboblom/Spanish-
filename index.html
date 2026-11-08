@@ -202,7 +202,7 @@ const STOP = new Set(("para como pero este esta esto estos estas porque cuando s
 
 /* ===== SAVED TASTE (stays on this phone) ===== */
 const STORE = "spanishClips.v1";
-function blank(){ return {channels:{}, words:{}, skips:{}, blocked:[], seen:[], liked:[], search:""}; }
+function blank(){ return {channels:{}, words:{}, skips:{}, blocked:[], seen:[], liked:[], search:"", pool:{}, sDay:"", sCount:0}; }
 // Open the app link with #reset at the end to wipe saved taste and start fresh.
 if (location.hash === "#reset"){ try { localStorage.removeItem(STORE); } catch(e){} window.history.replaceState(null, "", location.pathname); }
 let S = (() => { try { return Object.assign(blank(), JSON.parse(localStorage.getItem(STORE)) || {}); } catch(e){ return blank(); } })();
@@ -233,50 +233,96 @@ function randomBase(exclude){
   return { q };
 }
 function pickPlan(){
-  // Taste share grows only after you like several different channels.
+  // Taste: after you like some clips, some searches use words from titles you liked.
   const likedChannels = Object.values(S.channels).filter(v => v.score > 0).length;
-  const share = likedChannels >= 3 ? 0.6 : likedChannels >= 1 ? 0.25 : 0;
-  if (Math.random() < share){
-    const ch = weightedPick(S.channels, v => v.score);
+  const share = likedChannels >= 3 ? 0.5 : likedChannels >= 1 ? 0.25 : 0;
+  if (!(S.search || "").trim() && Math.random() < share){
     const w = weightedPick(S.words, v => v);
-    const filtered = !!(S.search || "").trim();
-    // With a search, liked channels are searched only for that search.
-    if (ch && (!w || Math.random() < 0.5)) return filtered ? { channelId: ch, q: randomBase().q } : { channelId: ch };
-    if (w && !filtered) return { q: w + " #shorts" };
+    if (w) return { q: w + " #shorts" };
   }
   return randomBase();
 }
 
+/* ===== YOUTUBE REQUESTS =====
+   Your project allows only 100 searches per day, so the app saves them:
+   - Search finds new channels (costs 1 of your 100 daily searches).
+   - Channel pool: channels that had Spanish subtitles get remembered. The app then pulls
+     their newest uploads directly, which does NOT count against the 100 searches. */
+const SEARCH_DAILY_CAP = 95;          // stop searching a little before the 100 limit
+const MAX_SECONDS = 180;              // only clips up to 3 minutes
 const pageTokens = {};
-let lastSearchAt = 0, lastRefillAt = 0;
+let lastCallAt = 0, lastRefillAt = 0;
 const sleep = ms => new Promise(res => setTimeout(res, ms));
-async function searchOnce(plan){
-  const p = new URLSearchParams({ part:"snippet", type:"video", videoDuration:"short", videoCaption:"closedCaption",
-    videoEmbeddable:"true", relevanceLanguage:"es", maxResults:"25", key:API_KEY });
-  if (plan.channelId) p.set("channelId", plan.channelId);
-  if (plan.q) p.set("q", plan.q);
-  const key = (plan.channelId || "") + "|" + (plan.q || "");
-  if (pageTokens[key]) p.set("pageToken", pageTokens[key]);
-  let d;
+function searchesToday(){
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });   // YouTube resets at midnight Pacific
+  if (S.sDay !== day){ S.sDay = day; S.sCount = 0; }
+  return S.sCount || 0;
+}
+async function ytGet(endpoint, params, gapMs){
+  const p = new URLSearchParams(Object.assign({ key: API_KEY }, params));
   for (let attempt = 1; ; attempt++){
-    // Space searches at least 1.5 seconds apart so YouTube never sees a burst
-    const wait = lastSearchAt + 1500 - Date.now();
+    const wait = lastCallAt + gapMs - Date.now();
     if (wait > 0) await sleep(wait);
-    lastSearchAt = Date.now();
-    const r = await fetch("https://www.googleapis.com/youtube/v3/search?" + p);
-    d = await r.json();
-    if (!d.error) break;
+    lastCallAt = Date.now();
+    const r = await fetch("https://www.googleapis.com/youtube/v3/" + endpoint + "?" + p);
+    const d = await r.json();
+    if (!d.error) return d;
     const reason = (d.error.errors && d.error.errors[0] && d.error.errors[0].reason) || "";
-    if (reason === "quotaExceeded" || reason === "dailyLimitExceeded") throw new Error("Daily search limit reached. New clips return tomorrow.");
+    if (reason === "quotaExceeded" || reason === "dailyLimitExceeded"){
+      if (endpoint === "search"){ S.sCount = 999; save(); }      // treat searches as used up today
+      throw new Error("Daily YouTube limit reached. New clips return after 1 a.m.");
+    }
     if (/rateLimit/i.test(reason)){
       if (attempt < 4){ await sleep(4000 * attempt); continue; }   // back off: 4s, 8s, 12s
       throw new Error("YouTube asked the app to slow down. Wait a minute, then swipe again.");
     }
     throw new Error("YouTube refused the request (" + (reason || d.error.message) + "). Check your API key and its restrictions.");
   }
+}
+async function searchOnce(plan){
+  const params = { part:"snippet", type:"video", videoDuration:"short", videoCaption:"closedCaption",
+    videoEmbeddable:"true", relevanceLanguage:"es", maxResults:"25" };
+  if (plan.q) params.q = plan.q;
+  const key = "s|" + (plan.q || "");
+  if (pageTokens[key]) params.pageToken = pageTokens[key];
+  searchesToday(); S.sCount = (S.sCount || 0) + 1; save();
+  const d = await ytGet("search", params, 1500);
   if (d.nextPageToken) pageTokens[key] = d.nextPageToken; else delete pageTokens[key];
   return (d.items || []).filter(it => it.id && it.id.videoId)
     .map(it => ({ id: it.id.videoId, title: decode(it.snippet.title), channelId: it.snippet.channelId, channel: decode(it.snippet.channelTitle) }));
+}
+function isoSeconds(iso){
+  const m = /P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(iso || "") || [];
+  return (+m[1] || 0) * 86400 + (+m[2] || 0) * 3600 + (+m[3] || 0) * 60 + (+m[4] || 0);
+}
+async function fromPool(){
+  const blocked = new Set(S.blocked);
+  const pool = Object.keys(S.pool || {}).filter(id => !blocked.has(id) && id.startsWith("UC"));
+  // pick 4 channels; liked channels get picked more often
+  const weights = {}; pool.forEach(id => weights[id] = 1 + Math.max(0, (S.channels[id] || {}).score || 0));
+  const picks = [];
+  while (picks.length < 4 && Object.keys(weights).length){
+    const id = weightedPick(weights, v => v); if (!id) break;
+    picks.push(id); delete weights[id];
+  }
+  const vids = [];
+  for (const ch of picks){
+    const pl = "UU" + ch.slice(2), key = "p|" + pl;
+    const params = { part:"snippet,contentDetails", playlistId: pl, maxResults:"15" };
+    if (pageTokens[key]) params.pageToken = pageTokens[key];
+    let d; try { d = await ytGet("playlistItems", params, 300); } catch(e){ if (/limit|slow/i.test(e.message)) throw e; continue; }
+    if (d.nextPageToken) pageTokens[key] = d.nextPageToken; else delete pageTokens[key];
+    for (const it of (d.items || [])){
+      vids.push({ id: it.contentDetails.videoId, title: decode(it.snippet.title), channelId: ch,
+        channel: decode(it.snippet.videoOwnerChannelTitle || S.pool[ch].name || it.snippet.channelTitle) });
+    }
+  }
+  if (!vids.length) return [];
+  // keep only short, embeddable clips
+  const d = await ytGet("videos", { part:"contentDetails,status", id: vids.slice(0, 50).map(v => v.id).join(",") }, 300);
+  const ok = new Set((d.items || []).filter(it => it.status && it.status.embeddable !== false &&
+    isoSeconds(it.contentDetails.duration) > 0 && isoSeconds(it.contentDetails.duration) <= MAX_SECONDS).map(it => it.id));
+  return vids.filter(v => ok.has(v.id));
 }
 
 // Add clips so the same channel never appears within 3 clips of itself (when possible).
@@ -293,29 +339,35 @@ function fetchMore(){
   if (fetching) return fetching;
   const gen = topicGen;
   fetching = (async () => {
-    // At most one refill every 5 seconds, so skipped clips can't trigger a search storm
+    // At most one refill every 5 seconds, so skipped clips can't trigger a request storm
     const gap = lastRefillAt + 5000 - Date.now();
     if (gap > 0) await sleep(gap);
     lastRefillAt = Date.now();
-    for (let round = 0; round < 2; round++){
-      // Two different searches per round, mixed together, so one topic never takes over.
-      const a = round === 0 ? pickPlan() : randomBase();
-      const b = randomBase(a.q);
-      const results = [await searchOnce(a), await searchOnce(b)];
+    const searching = !!(S.search || "").trim();
+    const poolSize = Object.keys(S.pool || {}).length;
+    // Search bar active → search only. Otherwise mostly the free channel pool once it has 8+ channels.
+    let order;
+    if (searching) order = ["search", "search"];
+    else if (searchesToday() >= SEARCH_DAILY_CAP) order = ["pool", "pool"];
+    else if (poolSize >= 8) order = Math.random() < 0.75 ? ["pool", "search"] : ["search", "pool"];
+    else order = poolSize ? ["search", "pool"] : ["search", "search"];
+    for (let round = 0; round < order.length; round++){
+      if (order[round] === "search" && searchesToday() >= SEARCH_DAILY_CAP){
+        if (searching) throw new Error("Today’s 100 searches are used up. Clear Search clips to keep watching your mix.");
+        if (!poolSize) throw new Error("Today’s 100 searches are used up. New clips return after 1 a.m.");
+        order[round] = "pool";
+      }
+      const list = order[round] === "pool" ? await fromPool() : await searchOnce(round === 0 ? pickPlan() : randomBase());
       const seen = new Set(S.seen), blocked = new Set(S.blocked);
       const have = new Set(queue.concat(history).map(v => v.id));
       const perChannel = {}, fresh = [];
-      for (const list of results){
-        let taken = 0;
-        for (const v of shuffle(list)){
-          if (taken >= 20) break;                                  // max 20 clips per search
-          if (seen.has(v.id) || blocked.has(v.channelId) || have.has(v.id)) continue;
-          if ((perChannel[v.channelId] || 0) >= 2) continue;       // max 2 clips per channel per batch
-          perChannel[v.channelId] = (perChannel[v.channelId] || 0) + 1;
-          have.add(v.id); fresh.push(v); taken++;
-        }
+      for (const v of shuffle(list)){
+        if (seen.has(v.id) || blocked.has(v.channelId) || have.has(v.id)) continue;
+        if ((perChannel[v.channelId] || 0) >= 3) continue;         // max 3 clips per channel per batch
+        perChannel[v.channelId] = (perChannel[v.channelId] || 0) + 1;
+        have.add(v.id); fresh.push(v);
       }
-      if (gen !== topicGen) return;                                // feed reset mid-search
+      if (gen !== topicGen) return;                                // feed reset mid-request
       if (fresh.length){ addSpaced(shuffle(fresh)); fresh.forEach(v => loadSubs(v)); return; }
     }
   })().finally(() => { fetching = null; });
@@ -343,6 +395,7 @@ function recordLeave(){
     bumpChannel(current, -1);
     if (S.skips[current.channelId] >= 3 && !S.blocked.includes(current.channelId)){
       S.blocked.push(current.channelId);
+      if (S.pool) delete S.pool[current.channelId];
       queue = queue.filter(v => v.channelId !== current.channelId);
     }
   } else if (dur && t / dur > 0.8 && !current.done){
@@ -553,6 +606,14 @@ function loadSubs(v){
       .catch(() => null)
       .then(lines => {
         v.subsState = lines ? "ok" : "none";
+        if (lines){
+          S.pool = S.pool || {};
+          if (!S.pool[v.channelId]){
+            S.pool[v.channelId] = { name: v.channel };
+            const ids = Object.keys(S.pool); if (ids.length > 400) delete S.pool[ids[0]];
+            save();
+          }
+        }
         if (!lines && SUBS_ONLY && !S.seen.includes(v.id)){ S.seen.push(v.id); save(); }   // don't fetch it again
         return lines;
       });
