@@ -14,7 +14,7 @@
 <style>
 :root{
   --paper:#232325; --ink:#f2f2f3; --muted:#9a9aa1; --line:#38383c; --card:#2d2d30; --pill:#2a2a2d;
-  --mark:#f5d36b; --mark-ink:#1a1a1a; --heart:#ff4d7d; --soon:#8d8d94; --glass:rgba(30,30,33,.55);
+  --mark:#f5d36b; --mark-ink:#1a1a1a; --heart:#ff4d7d; --soon:#d0d0d5; --en:#a9a9b0; --glass:rgba(30,30,33,.55);
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
   --sans:"Figtree",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   color-scheme:dark;
@@ -57,8 +57,10 @@ button,input{font:inherit;color:inherit}
 .msg button{background:#fff;color:#000;border:0;border-radius:999px;padding:12px 28px;font-weight:600;cursor:pointer}
 
 /* Sentence under video */
-.panel{flex:0 0 auto;padding:12px 16px 2px;max-height:32%;overflow-y:auto;text-align:center}
-#title{font-size:21px;line-height:1.4;max-width:30em;margin:0 auto}
+.panel{flex:0 0 auto;padding:12px 16px 2px;text-align:center}
+/* Exactly one Spanish line + one English line, same size, auto-shrunk to fit */
+#title,#titleTr{font-size:20px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:640px;margin:0 auto;padding-bottom:6px}
+#titleTr{font-family:var(--sans);color:var(--en);margin-top:2px;min-height:0}
 /* Matched pairs: same-colored underline under a Spanish word and its English partner */
 .w.pair{text-decoration:underline;text-decoration-color:var(--pair);text-decoration-thickness:3px;text-underline-offset:5px;text-decoration-skip-ink:none}
 .en .w{cursor:default;margin:0;padding:0 1px}
@@ -68,7 +70,7 @@ button,input{font:inherit;color:inherit}
 .live .w.said{color:var(--ink);font-weight:700}
 .w.hl{background:var(--mark);color:var(--mark-ink);font-weight:700}
 .en{margin:6px auto 0;color:var(--muted);font-size:15px;line-height:1.5;min-height:1.45em;max-width:30em}
-.meta{margin:8px 0 0;font-size:12px;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chan{flex:0 0 auto;margin:10px 16px 0;text-align:center;font-size:14px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Bottom bar */
 .bar{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:8px 16px 12px;padding:6px;background:var(--glass);border:1px solid rgba(255,255,255,.08);border-radius:999px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
@@ -105,6 +107,8 @@ button,input{font:inherit;color:inherit}
   </form>
 </div>
 
+<p class="chan" id="channel"></p>
+
 <div class="stage" id="stage">
   <div class="frame">
     <div id="player"></div>
@@ -118,7 +122,6 @@ button,input{font:inherit;color:inherit}
 <div class="panel">
   <p class="es" id="title" lang="es"></p>
   <p class="en" id="titleTr"></p>
-  <p class="meta" id="channel"></p>
 </div>
 
 <div class="bar">
@@ -145,6 +148,8 @@ button,input{font:inherit;color:inherit}
 const API_KEY = "AIzaSyDeDKkYb4DBV4hNzmyVSQRmddwqLBKi20k"; // your YouTube Data API key
 // Your Cloudflare Worker link, like "https://spanish-subs.yourname.workers.dev". Leave "" to show clip titles instead.
 const TRANSCRIPT_URL = "https://spanish-subs.atticusada.workers.dev";
+// true = skip clips that have no Spanish subtitles (needs TRANSCRIPT_URL)
+const SUBS_ONLY = true;
 // true = also show YouTube's own subtitles inside the video. false = only the lines below the video.
 const SHOW_VIDEO_SUBS = false;
 
@@ -273,7 +278,7 @@ function fetchMore(){
         }
       }
       if (gen !== topicGen) return;                                // feed reset mid-search
-      if (fresh.length){ addSpaced(shuffle(fresh)); return; }
+      if (fresh.length){ addSpaced(shuffle(fresh)); fresh.forEach(v => loadSubs(v)); return; }
     }
   })().finally(() => { fetching = null; });
   return fetching;
@@ -378,11 +383,16 @@ function show(i){
   });
   if (queue[0]) loadSubs(queue[0]);     // get the next clip's lines early
   closeSheet(false);
-  if (queue.length < 5) fetchMore().catch(err => { if (!queue.length) showMsg(err.message); });
+  if (usable() < 6) fetchMore().catch(err => { if (!queue.length) showMsg(err.message); });
 }
 function next(){
   if (pos < history.length - 1) return show(pos + 1);
-  if (queue.length){ history.push(queue.shift()); return show(history.length - 1); }
+  if (SUBS_ONLY && TRANSCRIPT_URL) queue = queue.filter(v => v.subsState !== "none");
+  if (queue.length){
+    let i = (SUBS_ONLY && TRANSCRIPT_URL) ? queue.findIndex(v => v.subsState === "ok") : 0;
+    if (i < 0) i = 0;                                   // nothing checked yet: take the next one anyway
+    history.push(queue.splice(i, 1)[0]); return show(history.length - 1);
+  }
   showMsg("Loading clips…");
   fetchMore().then(() => { if (queue.length){ hideMsg(); next(); } else showMsg("No new clips found. Try again later."); })
              .catch(err => showMsg(err.message));
@@ -441,13 +451,14 @@ const PAIR_COLORS = ["#f5d36b", "#7cc8ff", "#ff8fab", "#8ee59b", "#c7a5ff", "#ff
 const measureCtx = document.createElement("canvas").getContext("2d");
 function textWidth(t, font){ measureCtx.font = font; return measureCtx.measureText(t).width; }
 function fitWidth(esEl, enEl){
+  if (esEl.id !== "title"){ enEl.style.fontSize = ""; return; }   // word card lines may wrap
+  const avail = esEl.clientWidth || 300;
   const es = esEl.textContent.trim(), en = enEl.textContent.trim();
-  if (!es || !en){ enEl.style.fontSize = ""; return; }
-  const esSize = parseFloat(getComputedStyle(esEl).fontSize) || 21;
-  const wEs = textWidth(es, "500 " + esSize + "px Newsreader, Georgia, serif");
-  const wEn = textWidth(en, "400 15px Figtree, -apple-system, sans-serif");
-  const size = Math.max(12, Math.min(esSize - 3, 15 * wEs / wEn));   // English sized so both lines run the same length
-  enEl.style.fontSize = size.toFixed(1) + "px";
+  const base = 20; let size = base;
+  if (es) size = Math.min(size, base * avail / textWidth(es, "700 " + base + "px Newsreader, Georgia, serif"));
+  if (en) size = Math.min(size, base * avail / textWidth(en, "400 " + base + "px Figtree, -apple-system, sans-serif"));
+  size = Math.max(12, Math.floor(size * 10) / 10);
+  esEl.style.fontSize = enEl.style.fontSize = size + "px";   // same size for both lines
 }
 async function linkPairs(esSpans, enSpans, stillCurrent){
   const cores = esSpans.map(sp => sp.el.dataset.core);
@@ -484,16 +495,29 @@ function renderTwin(esEl, enEl, esText, enText, highlight){
 
 /* ===== LIVE SPOKEN LINES ===== */
 const subsCache = {};
+function makeLimiter(n){
+  let active = 0; const wait = [];
+  return fn => new Promise((res, rej) => {
+    const run = () => { active++; fn().then(res, rej).finally(() => { active--; if (wait.length) wait.shift()(); }); };
+    active < n ? run() : wait.push(run);
+  });
+}
+const subsLimit = makeLimiter(3);
 function loadSubs(v){
   if (!TRANSCRIPT_URL) return Promise.resolve(null);
   if (!subsCache[v.id]){
-    subsCache[v.id] = fetch(TRANSCRIPT_URL.replace(/\/$/, "") + "/?v=" + v.id)
-      .then(r => r.json())
+    subsCache[v.id] = subsLimit(() => fetch(TRANSCRIPT_URL.replace(/\/$/, "") + "/?v=" + v.id).then(r => r.json()))
       .then(d => (d && d.lines && d.lines.length) ? d.lines : null)
-      .catch(() => null);
+      .catch(() => null)
+      .then(lines => {
+        v.subsState = lines ? "ok" : "none";
+        if (!lines && SUBS_ONLY && !S.seen.includes(v.id)){ S.seen.push(v.id); save(); }   // don't fetch it again
+        return lines;
+      });
   }
   return subsCache[v.id];
 }
+function usable(){ return queue.filter(v => v.subsState !== "none").length; }
 let curLine = -1, lineSpans = [], lineTimes = [];
 function wordTimes(line, spans){
   const len = line.text.length || 1;
@@ -534,7 +558,7 @@ function renderInfo(){
   $("title").classList.remove("live");
   renderTwin($("title"), $("titleTr"), v.clean, "");
   translateText(v.clean).then(t => { if (current === v && !$("title").classList.contains("live") && t) renderTwin($("title"), $("titleTr"), v.clean, t); }).catch(() => {});
-  $("channel").textContent = v.channel + " · YouTube";
+  $("channel").textContent = v.channel;
   $("like").classList.toggle("on", S.liked.includes(v.id));
 }
 
@@ -670,8 +694,13 @@ function boot(){
     showMsg("Add your YouTube API key: open index.html and paste it on the line that says API_KEY."); return;
   }
   showMsg("Loading clips…");
-  fetchMore().then(() => {
+  fetchMore().then(async () => {
     if (!queue.length){ showMsg("No clips found. Try again later."); return; }
+    if (SUBS_ONLY && TRANSCRIPT_URL){
+      // wait up to 6 seconds for at least one clip with Spanish subtitles
+      const firstOk = new Promise(res => queue.forEach(v => loadSubs(v).then(l => { if (l) res(); })));
+      await Promise.race([firstOk, new Promise(res => setTimeout(res, 6000))]);
+    }
     showMsg("Swipe up for next clip. Tap to pause. Double-tap to like.", "Start");
   }).catch(err => showMsg(err.message));
 }
