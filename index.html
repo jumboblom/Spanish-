@@ -60,7 +60,8 @@ button,input{font:inherit;color:inherit}
 .panel{flex:0 0 auto;padding:12px 16px 2px;text-align:center}
 /* Exactly one Spanish line + one English line, same size, auto-shrunk to fit */
 #title,#titleTr{font-size:20px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:640px;margin:0 auto;padding-bottom:6px}
-#titleTr{font-family:var(--sans);color:var(--en);margin-top:2px;min-height:0}
+#title,#titleTr{min-height:calc(1.35em + 6px)}
+#titleTr{font-family:var(--sans);color:var(--en);margin-top:2px}
 /* Matched pairs: same-colored underline under a Spanish word and its English partner */
 .w.pair{text-decoration:underline;text-decoration-color:var(--pair);text-decoration-thickness:3px;text-underline-offset:5px;text-decoration-skip-ink:none}
 .en .w{cursor:default;margin:0;padding:0 1px}
@@ -378,7 +379,7 @@ function show(i){
   loadSubs(v).then(lines => {
     if (current !== v) return;
     v.lines = lines; curLine = -1;
-    if (!lines) return;
+    if (!lines){ showNoLines("No Spanish subtitles for this clip."); return; }
     if (v.played) applyCaptions();
   });
   if (queue[0]) loadSubs(queue[0]);     // get the next clip's lines early
@@ -555,11 +556,17 @@ setInterval(() => {
 function renderInfo(){
   const v = current;
   v.clean = cleanTitle(v.title);
-  $("title").classList.remove("live");
-  renderTwin($("title"), $("titleTr"), v.clean, "");
-  translateText(v.clean).then(t => { if (current === v && !$("title").classList.contains("live") && t) renderTwin($("title"), $("titleTr"), v.clean, t); }).catch(() => {});
+  // Subtitle area shows only real spoken lines. Never the video title.
+  showNoLines(TRANSCRIPT_URL ? "" : "Add your TRANSCRIPT_URL to see spoken lines.");
   $("channel").textContent = v.channel;
   $("like").classList.toggle("on", S.liked.includes(v.id));
+}
+
+function showNoLines(note){
+  lineSpans = []; lineTimes = [];
+  $("title").classList.remove("live");
+  $("title").textContent = ""; $("title").style.fontSize = "";
+  $("titleTr").textContent = note || ""; $("titleTr").style.fontSize = note ? "14px" : "";
 }
 
 /* ===== DICTIONARY ===== */
