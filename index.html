@@ -35,18 +35,21 @@ button,input{font:inherit;color:inherit}
 .ambient .layer.on{opacity:1}
 .ambient::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(20,20,22,.25),rgba(20,20,22,.55) 70%,rgba(20,20,22,.75))}
 
-/* Search bar */
-.top{flex:0 0 auto;padding:10px 16px 0}
-.top form{position:relative}
-.top input{width:100%;padding:10px 44px 10px 16px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font-size:15px;-webkit-appearance:none;appearance:none}
+/* Top bar: two small search fields side by side */
+.top{flex:0 0 auto;display:flex;gap:8px;padding:8px 12px 0}
+.top form{position:relative;flex:1;min-width:0}
+.top input{width:100%;height:36px;padding:0 30px 0 32px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:var(--glass);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font-size:16px;-webkit-appearance:none;appearance:none;outline:none}
 .top input::-webkit-search-cancel-button{display:none}
-.top .x{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);min-width:40px;min-height:40px;font-size:16px;cursor:pointer}
+.top input::placeholder{color:var(--muted)}
+.top .mag{position:absolute;left:11px;top:50%;width:15px;height:15px;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.top .x{position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);width:32px;height:32px;font-size:13px;cursor:pointer}
 .top .x[hidden]{display:none}
 
 /* Video card */
 .stage{position:relative;flex:1 1 auto;min-height:0;display:flex;justify-content:center;padding:10px 16px 0;max-height:68vh}
 .frame{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-#player{position:absolute;inset:0;width:100%;height:100%;border:0}
+#player{position:absolute;left:50%;top:50%;width:calc(100% * var(--zoom,1));height:calc(100% * var(--zoom,1));transform:translate(-50%,-50%);border:0}
 .touch{position:absolute;inset:0;z-index:2;touch-action:none;cursor:pointer}
 .big-heart{position:absolute;left:50%;top:50%;z-index:3;font-size:96px;color:var(--heart);transform:translate(-50%,-50%) scale(.4);opacity:0;pointer-events:none;transition:transform .25s ease,opacity .35s ease}
 .big-heart.show{transform:translate(-50%,-50%) scale(1);opacity:.95}
@@ -71,14 +74,12 @@ button,input{font:inherit;color:inherit}
 .live .w.said{color:var(--ink);font-weight:700}
 .w.hl{background:var(--mark);color:var(--mark-ink);font-weight:700}
 .en{margin:6px auto 0;color:var(--muted);font-size:15px;line-height:1.5;min-height:1.45em;max-width:30em}
-.chan{flex:0 0 auto;margin:10px 16px 0;text-align:center;font-size:14px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chan{flex:1;min-width:0;margin:0;text-align:center;font-size:14px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* Bottom bar */
-.bar{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:8px 16px 12px;padding:6px;background:var(--glass);border:1px solid rgba(255,255,255,.08);border-radius:999px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-.bar .icon{flex:0 0 auto;width:46px;height:46px;border:0;border-radius:999px;background:transparent;font-size:20px;cursor:pointer;display:grid;place-items:center}
-#like.on{background:var(--mark);color:var(--heart)}
-.bar form{flex:1;min-width:0}
-.bar input{width:100%;border:0;background:transparent;padding:10px 12px;font-size:15px;outline:none}
+/* Channel row: replay, channel name, like */
+.chanrow{flex:0 0 auto;display:flex;align-items:center;gap:6px;margin:6px 12px 0}
+.mini{flex:0 0 auto;width:34px;height:34px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:17px;cursor:pointer;display:grid;place-items:center}
+#like.on{color:var(--heart)}
 
 /* Word card */
 .backdrop{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.5)}
@@ -102,13 +103,22 @@ button,input{font:inherit;color:inherit}
 <div class="ambient" aria-hidden="true"><div class="layer" id="amb0"></div><div class="layer" id="amb1"></div></div>
 
 <div class="top">
+  <form id="lookupForm" onsubmit="return false">
+    <svg class="mag" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="lookupInput" type="search" placeholder="Word" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Look up a Spanish word">
+  </form>
   <form id="searchForm" onsubmit="return false" role="search">
-    <input id="searchInput" type="search" placeholder="Search clips, or leave blank for the mix" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search clips">
+    <svg class="mag" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="searchInput" type="search" placeholder="Clips" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search clips, blank for the mix">
     <button type="button" class="x" id="searchClear" aria-label="Clear search" hidden>✕</button>
   </form>
 </div>
 
-<p class="chan" id="channel"></p>
+<div class="chanrow">
+  <button class="mini" id="replay" aria-label="Replay clip">↻</button>
+  <p class="chan" id="channel"></p>
+  <button class="mini" id="like" aria-label="Like clip">♥</button>
+</div>
 
 <div class="stage" id="stage">
   <div class="frame">
@@ -123,14 +133,6 @@ button,input{font:inherit;color:inherit}
 <div class="panel">
   <p class="es" id="title" lang="es"></p>
   <p class="en" id="titleTr"></p>
-</div>
-
-<div class="bar">
-  <button class="icon" id="like" aria-label="Like clip">♥</button>
-  <button class="icon" id="replay" aria-label="Replay clip">↻</button>
-  <form id="lookupForm" onsubmit="return false">
-    <input id="lookupInput" type="text" placeholder="Look up a word you heard" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Look up a Spanish word">
-  </form>
 </div>
 
 <div class="backdrop" id="backdrop" hidden></div>
@@ -149,6 +151,9 @@ button,input{font:inherit;color:inherit}
 const API_KEY = "AIzaSyDeDKkYb4DBV4hNzmyVSQRmddwqLBKi20k"; // your YouTube Data API key
 // Your Cloudflare Worker link, like "https://spanish-subs.yourname.workers.dev". Leave "" to show clip titles instead.
 const TRANSCRIPT_URL = "https://spanish-subs.atticusada.workers.dev";
+// Zooms the video slightly so YouTube's buttons at the edges get cropped off. 1 = no crop.
+const VIDEO_ZOOM = 1.18;
+document.documentElement.style.setProperty("--zoom", VIDEO_ZOOM);
 // true = skip clips that have no Spanish subtitles (needs TRANSCRIPT_URL)
 const SUBS_ONLY = true;
 // true = also show YouTube's own subtitles inside the video. false = only the lines below the video.
@@ -378,7 +383,7 @@ function show(i){
   const v = current;
   loadSubs(v).then(lines => {
     if (current !== v) return;
-    v.lines = lines; curLine = -1;
+    v.lines = lines ? splitLines(lines) : null; curLine = -1;
     if (!lines){ showNoLines("No Spanish subtitles for this clip."); return; }
     if (v.played) applyCaptions();
   });
@@ -537,6 +542,33 @@ function wordTimes(line, spans){
   }
   const dur = Math.max(0.5, line.e - line.s);
   return spans.map(sp => line.s + dur * (sp.o / len));
+}
+// Breaks long subtitle lines into pieces that each fit on one line, timed to the speech.
+function splitLines(lines){
+  const avail = ($("title").clientWidth || 320) * 0.96;
+  const size = 21;                                           // smallest comfortable size before splitting
+  const font = "700 " + size + "px Newsreader, Georgia, serif";
+  const out = [];
+  for (const L of lines){
+    if (textWidth(L.text, font) <= avail){ out.push(L); continue; }
+    const toks = [...L.text.matchAll(/\S+/g)].map(m => ({ t: m[0], o: m.index }));
+    const times = wordTimes(L, toks);
+    const parts = []; let cur = [];
+    for (const tk of toks){
+      const test = cur.concat(tk).map(x => x.t).join(" ");
+      if (cur.length && textWidth(test, font) > avail){ parts.push(cur); cur = [tk]; } else cur.push(tk);
+    }
+    if (cur.length) parts.push(cur);
+    const enWords = (L.en || "").split(/\s+/).filter(Boolean);
+    parts.forEach((p, k) => {
+      const s = times[toks.indexOf(p[0])];
+      const e = k + 1 < parts.length ? times[toks.indexOf(parts[k + 1][0])] : L.e;
+      const a = Math.round(k * enWords.length / parts.length), b = Math.round((k + 1) * enWords.length / parts.length);
+      const w = L.w ? L.w.filter(g => g.t >= s - 0.01 && g.t < e - 0.01) : null;
+      out.push({ s, e, text: p.map(x => x.t).join(" "), en: enWords.slice(a, b).join(" ") || undefined, w: w && w.length > 1 ? w : null });
+    });
+  }
+  return out;
 }
 function renderLine(line){
   $("title").classList.add("live");
